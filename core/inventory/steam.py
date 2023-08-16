@@ -1,26 +1,21 @@
-import os
 from random import randrange
 from time import sleep
 
 import requests
-from dotenv import load_dotenv
 from fake_useragent import UserAgent
 
-load_dotenv()
-
-apikey = os.getenv("APIKEY")
-user_id = os.getenv("USER_ID")
-
+from config import APIKEY, USER_ID
 
 ua = UserAgent()
 
 
 def get_games_id(user_id:str | int):
+    """geting all games id"""
     if type(user_id) is str:
         user_id = get_steam_id(user_id)
     url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/"
     games_id_full = requests.get(url, params={
-        'key': apikey,
+        'key': APIKEY,
         'steamid': user_id,
         'include_appinfo': 1,
     })
@@ -31,9 +26,10 @@ def get_games_id(user_id:str | int):
 
 
 def get_steam_id(user_id:str):
+    """name to id translation"""
     url = 'https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/'
     user_id = requests.get(url, params={
-        'key': apikey,
+        'key': APIKEY,
         'vanityurl': user_id,
         'url_type': 1
     })
@@ -41,6 +37,7 @@ def get_steam_id(user_id:str):
 
 
 def get_steam_inventory(user_id:int|str, game_id:int=730):
+    """geting all inventory"""
     if type(user_id) is str:
         user_id = get_steam_id(user_id)
     address = f'https://steamcommunity.com/inventory/{user_id}/{game_id}/2'
@@ -49,14 +46,22 @@ def get_steam_inventory(user_id:int|str, game_id:int=730):
 
 
 def get_classid_list(items:dict):
-    classid_names = []
+    """
+    geting classid list from inventory
+    (for counting the number of items)
+    """
+    classid_names = {}
     for classid in items["assets"]:
         id = classid["classid"]
-        classid_names.append(id)
+        if classid_names[id] in classid_names:
+            classid_names[id]+=1
+        else:
+            classid_names[id]=1
     return classid_names
 
 
 def get_items_list(items:dict):
+    """geting items names from inventory"""
     market_names = {}
     for market_name in items["descriptions"]:
         if market_name["type"]!="Extraordinary Collectible" and "Graffiti" not in market_name["market_hash_name"]:
@@ -67,29 +72,37 @@ def get_items_list(items:dict):
     return market_names
 
 
+
 def get_item_cost(name:str, game_id:int=730, currency:int=5):
+    """geting cost of item"""
     url = 'http://steamcommunity.com//market/priceoverview'
     market_item = requests.get(url, params={
         'appid': game_id,
         'market_hash_name': name,
         'currency': currency
     }, headers={'user-agent': f'{ua.random}'})
-    return market_item.json()['lowest_price']
+    cost = market_item.json()['lowest_price'].split()
+    cost = float(cost[0].replace(',', '.'))
+    return cost
 
 
-test = get_steam_inventory(user_id=user_id)
+# user_id = 76561198155948643
+
+test = get_steam_inventory(user_id=int(USER_ID))
 items_list = get_items_list(items=test)
 test_items_list = {}
 test_inventory = []
-
+test_inventory_cost = 0
 
 for k, item in enumerate(items_list):
     test_inventory.append(item)
 
 for k, item in enumerate(items_list):
     try:
-        test_items_list[item] = get_item_cost(item)
-        sleep(randrange(2, 10))
+        cost = get_item_cost(item)
+        test_items_list[item] = cost
+        test_inventory_cost += cost
+        sleep(randrange(3, 10))
     except BaseException:
         pass
 
@@ -99,6 +112,8 @@ print(len(test_inventory))
 
 print(test_items_list)
 print(len(test_items_list))
+
+print(test_inventory_cost)
 
 print(set(test_inventory).difference(test_items_list.keys()))
 
