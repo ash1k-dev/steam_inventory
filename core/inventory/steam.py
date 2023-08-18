@@ -4,7 +4,7 @@ from time import sleep
 import requests
 from fake_useragent import UserAgent
 
-from config import APIKEY, USER_ID
+from config import APIKEY
 
 ua = UserAgent()
 
@@ -72,7 +72,6 @@ def get_items_list(items:dict):
     return market_names
 
 
-
 def get_item_cost(name:str, game_id:int=730, currency:int=5):
     """geting cost of item"""
     url = 'http://steamcommunity.com//market/priceoverview'
@@ -86,35 +85,18 @@ def get_item_cost(name:str, game_id:int=730, currency:int=5):
     return cost
 
 
-# user_id = 76561198155948643
-
-test = get_steam_inventory(user_id=int(USER_ID))
-items_list = get_items_list(items=test)
-test_items_list = {}
-test_inventory = []
-test_inventory_cost = 0
-
-for k, item in enumerate(items_list):
-    test_inventory.append(item)
-
-for k, item in enumerate(items_list):
-    try:
-        cost = get_item_cost(item)
-        test_items_list[item] = cost
-        test_inventory_cost += cost
-        sleep(randrange(3, 10))
-    except BaseException:
-        pass
-
-
-print(test_inventory)
-print(len(test_inventory))
-
-print(test_items_list)
-print(len(test_items_list))
-
-print(test_inventory_cost)
-
-print(set(test_inventory).difference(test_items_list.keys()))
-
+def all_test(user_id):
+    test = get_steam_inventory(user_id=int(user_id))
+    items_list = get_items_list(items=test)
+    test_items_list = {}
+    test_inventory_cost = 0
+    for k, item in enumerate(items_list):
+        try:
+            cost = get_item_cost(item)
+            test_items_list[item] = cost
+            test_inventory_cost += cost
+            sleep(randrange(3, 10))
+        except BaseException:
+            pass
+    return test_inventory_cost
 
