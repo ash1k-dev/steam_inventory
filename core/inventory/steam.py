@@ -9,7 +9,7 @@ from config import APIKEY
 ua = UserAgent()
 
 
-def get_games_id(user_id:str | int):
+def get_games_id(user_id:str | int) -> dict:
     """geting all games id"""
     if type(user_id) is str:
         user_id = get_steam_id(user_id)
@@ -20,12 +20,12 @@ def get_games_id(user_id:str | int):
         'include_appinfo': 1,
     })
     games_id ={}
-    for i in games_id_full.json()['response']['games']:
-        games_id[i['appid']] = i['name']
+    for id in games_id_full.json()['response']['games']:
+        games_id[id['appid']] = id['name']
     return games_id
 
 
-def get_steam_id(user_id:str):
+def get_steam_id(user_id:str) -> int:
     """name to id translation"""
     url = 'https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/'
     user_id = requests.get(url, params={
@@ -36,7 +36,7 @@ def get_steam_id(user_id:str):
     return user_id
 
 
-def get_steam_inventory(user_id:int|str, game_id:int=730):
+def get_steam_inventory(user_id:int|str, game_id:int=730) -> dict:
     """geting all inventory"""
     if type(user_id) is str:
         user_id = get_steam_id(user_id)
@@ -45,7 +45,7 @@ def get_steam_inventory(user_id:int|str, game_id:int=730):
     return data.json()
 
 
-def get_classid_list(items:dict):
+def get_classid_list(items:dict) -> dict:
     """
     geting classid list from inventory
     (for counting the number of items)
@@ -60,7 +60,7 @@ def get_classid_list(items:dict):
     return classid_names
 
 
-def get_items_list(items:dict):
+def get_items_list(items:dict) -> dict:
     """geting items names from inventory"""
     market_names = {}
     for market_name in items["descriptions"]:
@@ -72,7 +72,7 @@ def get_items_list(items:dict):
     return market_names
 
 
-def get_item_cost(name:str, game_id:int=730, currency:int=5):
+def get_item_cost(name:str, game_id:int=730, currency:int=5) -> float:
     """geting cost of item"""
     url = 'http://steamcommunity.com//market/priceoverview'
     market_item = requests.get(url, params={
@@ -85,9 +85,14 @@ def get_item_cost(name:str, game_id:int=730, currency:int=5):
     return cost
 
 
-def all_test(user_id):
-    test = get_steam_inventory(user_id=int(user_id))
-    items_list = get_items_list(items=test)
+def all_test(user_id: str | int) -> None:
+    games_id_list = get_games_id(user_id)
+    for game in games_id_list:
+        steam_inventory = get_steam_inventory(user_id=int(user_id), game_id=game)
+        items_list = get_items_list(items=steam_inventory)
+        classid_list = get_classid_list(items=steam_inventory)
+
+
     test_items_list = {}
     test_inventory_cost = 0
     for k, item in enumerate(items_list):
@@ -99,4 +104,3 @@ def all_test(user_id):
         except BaseException:
             pass
     return test_inventory_cost
-
