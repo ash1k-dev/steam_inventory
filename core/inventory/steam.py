@@ -9,62 +9,101 @@ from config import APIKEY
 ua = UserAgent()
 
 
-def get_games_id(user_id:str | int) -> dict:
-    """geting all games id"""
-    if type(user_id) is str:
-        user_id = get_steam_id(user_id)
+def get_time_in_games(steam_id):
+    """Getting time in all games"""
+    url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
+    request = requests.get(url, params={"key": APIKEY, "steamid": steam_id})
+    games_list = request.json()["response"]
+    return games_list
+
+
+# print(get_time_in_games(76561198155948643))
+
+
+def get_game_cost(game_id):
+    """Getting game cost"""
+    url = "http://store.steampowered.com/api/appdetails"
+    request = requests.get(url, params={"appids": game_id, "cc": "ru"})
+    game_cost = request.json()[game_id]["data"]["price_overview"]["final_formatted"]
+    game_cost = int(game_cost.split()[0])
+    return game_cost
+
+
+def get_steam_id(steam_id: str) -> int:
+    """Name to id translation"""
+    if steam_id.isdigit():
+        return int(steam_id)
+    url = "https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/"
+    request = requests.get(
+        url, params={"key": APIKEY, "vanityurl": steam_id, "url_type": 1}
+    )
+    user_id = request.json()["response"]["steamid"]
+    return int(user_id)
+
+
+def get_steam_name(steam_id):
+    """Getting name from steam id"""
+    url = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/"
+    request = requests.get(
+        url,
+        params={
+            "key": APIKEY,
+            "steamids": steam_id,
+        },
+    )
+    steam_name = request.json()["response"]["players"][0]["personaname"]
+    return steam_name
+
+
+def get_games_id(steam_id: str) -> dict:
+    """Getting all games id"""
+    steam_id = get_steam_id(steam_id)
     url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/"
-    games_id_full = requests.get(url, params={
-        'key': APIKEY,
-        'steamid': user_id,
-        'include_appinfo': 1,
-    })
-    games_id ={}
-    for id in games_id_full.json()['response']['games']:
-        games_id[id['appid']] = id['name']
+    games_id_full = requests.get(
+        url,
+        params={
+            "key": APIKEY,
+            "steamid": steam_id,
+            "include_appinfo": 1,
+        },
+    )
+    games_id = {}
+    for id in games_id_full.json()["response"]["games"]:
+        games_id[id["appid"]] = id["name"]
     return games_id
 
 
-def get_steam_id(user_id:str) -> int:
-    """name to id translation"""
-    url = 'https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/'
-    user_id = requests.get(url, params={
-        'key': APIKEY,
-        'vanityurl': user_id,
-        'url_type': 1
-    })
-    return user_id
-
-
-def get_steam_inventory(user_id:int|str, game_id:int=730) -> dict:
-    """geting all inventory"""
-    if type(user_id) is str:
-        user_id = get_steam_id(user_id)
-    address = f'https://steamcommunity.com/inventory/{user_id}/{game_id}/2'
-    data = requests.get(address)
+def get_steam_inventory(steam_id: int | str, game_id: int = 730) -> dict:
+    """Getting all inventory"""
+    steam_id = get_steam_id(steam_id)
+    url = f"https://steamcommunity.com/inventory/{steam_id}/{game_id}/2"
+    data = requests.get(url)
     return data.json()
 
 
-def get_classid_list(items:dict) -> dict:
+def get_classid_list(items: dict) -> dict:
     """
-    geting classid list from inventory
+    Getting classid list from inventory
     (for counting the number of items)
     """
     classid_names = {}
     for classid in items["assets"]:
         id = classid["classid"]
         if classid_names[id] in classid_names:
-            classid_names[id]+=1
+            classid_names[id] += 1
         else:
-            classid_names[id]=1
+            classid_names[id] = 1
     return classid_names
 
 
-def get_items_list(items:dict) -> dict:
-    """geting items names from inventory"""
+def get_items_list(items: dict) -> dict:
+    """Getting items names from inventory"""
     market_names = {}
     for market_name in items["descriptions"]:
-        if market_name["type"]!="Extraordinary Collectible" and "Graffiti" not in market_name["market_hash_name"]:
+        if (
+            market_name["type"] != "Extraordinary Collectible"
+            and "Graffiti" not in market_name["market_hash_name"]
+        ):
             item = market_name["market_hash_name"]
             appid = market_name["appid"]
             classid = market_name["classid"]
@@ -72,26 +111,31 @@ def get_items_list(items:dict) -> dict:
     return market_names
 
 
-def get_item_cost(name:str, game_id:int=730, currency:int=5) -> float:
-    """geting cost of item"""
-    url = 'http://steamcommunity.com//market/priceoverview'
-    market_item = requests.get(url, params={
-        'appid': game_id,
-        'market_hash_name': name,
-        'currency': currency
-    }, headers={'user-agent': f'{ua.random}'})
-    cost = market_item.json()['lowest_price'].split()
-    cost = float(cost[0].replace(',', '.'))
+def get_item_cost(name: str, game_id: int = 730, currency: int = 5) -> float:
+    """Getting cost of item"""
+    url = "http://steamcommunity.com//market/priceoverview"
+    market_item = requests.get(
+        url,
+        params={"appid": game_id, "market_hash_name": name, "currency": currency},
+        headers={"user-agent": f"{ua.random}"},
+    )
+    cost = market_item.json()["lowest_price"].split()
+    cost = float(cost[0].replace(",", "."))
     return cost
 
 
-def all_test(user_id: str | int) -> None:
-    games_id_list = get_games_id(user_id)
+def all_test(steam_id: str):
+    games_id_list = get_games_id(steam_id)
     for game in games_id_list:
-        steam_inventory = get_steam_inventory(user_id=int(user_id), game_id=game)
+        steam_inventory = get_steam_inventory(user_id=int(steam_id), game_id=game)
         items_list = get_items_list(items=steam_inventory)
         classid_list = get_classid_list(items=steam_inventory)
+    steam_inventory = get_steam_inventory(user_id=int(steam_id), game_id=game)
+    steam_id = get_steam_id(steam_id)
+    classid_list = get_classid_list(items=steam_inventory)
 
+    steam_inventory = get_steam_inventory(user_id=steam_id)
+    items_list = get_items_list(items=steam_inventory)
 
     test_items_list = {}
     test_inventory_cost = 0

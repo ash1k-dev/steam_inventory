@@ -5,23 +5,21 @@ from aiogram import Bot, Dispatcher
 from aiogram.filters import Command
 from aiogram.types import Message
 
+from core.bot.utils import admin_notification
+from core.bot.handlers import user
+
+
 from config import ADMIN_ID, TOKEN
 from core.inventory.steam import *
+
+from core.bot.keyboards.reply import get_main_menu
 
 
 async def get_start(message: Message):
     """"""
-    await message.answer(f"Привет {message.from_user.full_name}")
-
-
-async def start_bot(bot: Bot):
-    """"""
-    await bot.send_message(chat_id=ADMIN_ID, text="Бот запущен")
-
-
-async def stop_bot(bot: Bot):
-    """"""
-    await bot.send_message(chat_id=ADMIN_ID, text="Бот остановлен")
+    await message.answer(
+        f"Привет {message.from_user.full_name}", reply_markup=get_main_menu()
+    )
 
 
 async def send_inventory_cost(message: Message, bot: Bot):
@@ -31,7 +29,7 @@ async def send_inventory_cost(message: Message, bot: Bot):
         await bot.send_message(message.chat.id, text=inventory_cost)
     except Exception:
         await bot.send_message(
-            message.chat.id, text="Неверный id, попробуйте еще раз"
+            message.chat.id, text="Неверный steam id, попробуйте еще раз"
         )
 
 
@@ -43,18 +41,12 @@ async def start():
         "(%(filename)s).%(funcName)s(%(lineno)d) - %(message)s",
     )
     bot = Bot(token=TOKEN, parse_mode="HTML")
-
     dp = Dispatcher()
 
-    dp.message.register(get_start, Command(commands=["run", "start"]))
-    dp.startup.register(start_bot)
-    dp.shutdown.register(stop_bot)
-    dp.message.register(send_inventory_cost)
+    dp.include_routers(user.router, admin_notification.router)
 
-    try:
-        await dp.start_polling(bot)
-    finally:
-        await bot.session.close()
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
