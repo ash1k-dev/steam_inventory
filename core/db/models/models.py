@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer, BigInteger, String
 from sqlalchemy.orm import DeclarativeBase, declared_attr, relationship
 
 
@@ -23,7 +23,7 @@ class User(Base):
 
 
 class SteamId(Base):
-    steam_id = Column(Integer)
+    steam_id = Column(BigInteger)
     steam_name = Column(String)
     user_id = Column(Integer, ForeignKey("users.id"))
 
@@ -55,22 +55,23 @@ class SteamId(Base):
 #         return f"{self.__class__.__name__}, games_id: {self.games_id}, cost: {self.now_inventory_cost}"
 #
 #
-# class SteamItem(Base):
-#     name = Column(String, nullable=False)
-#     app_id = Column(Integer, nullable=False)
-#     classid = Column(Integer, nullable=False)
-#     previous_item_cost = Column(Integer, default=0, nullable=False)
-#     now_item_cost = Column(Integer, nullable=False)
-#
-#     steam_inventory = relationship(
-#         "SteamInventory",
-#         secondary="steam_items_in_inventory",
-#         back_populates="items_in",
-#     )
-#
-#     def __repr__(self):
-#         return f"{self.__class__.__name__}, classid: {self.classid}, cost: {self.now_item_cost}"
-#
+class SteamItem(Base):
+    name = Column(String, nullable=False)
+    app_id = Column(Integer, nullable=False)
+    classid = Column(Integer, nullable=False)
+    previous_item_cost = Column(Integer, default=0, nullable=False)
+    now_item_cost = Column(Integer, nullable=False)
+
+    steam_inventory = relationship(
+        "SteamInventory",
+        secondary="steam_items_in_inventory",
+        back_populates="items_in",
+    )
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}, classid: {self.classid}, cost: {self.now_item_cost}"
+
+
 #
 # class SteamItemsInInventory(Base):
 #     amount = Column(String())
@@ -87,6 +88,7 @@ class Game(Base):
     game_name = Column(String)
     game_id = Column(Integer)
     game_cost = Column(Integer)
+    time_in_game = Column(Integer)
     steam_id = Column(Integer, ForeignKey("steamids.id"))
 
     steamid = relationship("SteamId", back_populates="games")

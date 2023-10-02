@@ -2,35 +2,13 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
-from aiogram.filters import Command
-from aiogram.types import Message
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from core.bot.utils import admin_notification
+from config import DB_URL, TOKEN
 from core.bot.handlers import user
-
-
-from config import ADMIN_ID, TOKEN
-from core.inventory.steam import *
-
-from core.bot.keyboards.reply import get_main_menu
-
-
-async def get_start(message: Message):
-    """"""
-    await message.answer(
-        f"Привет {message.from_user.full_name}", reply_markup=get_main_menu()
-    )
-
-
-async def send_inventory_cost(message: Message, bot: Bot):
-    """"""
-    try:
-        inventory_cost = all_test(message.text)
-        await bot.send_message(message.chat.id, text=inventory_cost)
-    except Exception:
-        await bot.send_message(
-            message.chat.id, text="Неверный steam id, попробуйте еще раз"
-        )
+from core.bot.middlewares.db_connection import DbConnection
+from core.bot.middlewares.long_operation import LongOperationMiddleware
+from core.bot.utils import admin_notification
 
 
 async def start():
@@ -43,10 +21,16 @@ async def start():
     bot = Bot(token=TOKEN, parse_mode="HTML")
     dp = Dispatcher()
 
+    engine = create_async_engine(url=DB_URL, echo=True)
+    sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
+
+    dp.message.middleware(LongOperationMiddleware())
+    dp.update.middleware(DbConnection(sessionmaker))
+
     dp.include_routers(user.router, admin_notification.router)
 
     await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+    await dp.start_polling(bot, sessionmaker=sessionmaker)
 
 
 if __name__ == "__main__":

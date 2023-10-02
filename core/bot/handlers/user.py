@@ -1,32 +1,162 @@
-from aiogram import Router, F
+from aiogram import Bot, F, Router
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import CallbackQuery, Message
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.db.methods.create import create_user, create_steamid, create_game
+from core.db.methods.request import (
+    get_user_from_db,
+    get_steamid_from_db,
+    check_steam_id_in_db,
+    get_all_steam_ids_from_db,
+)
+from core.db.methods.delete import delete_steam_id
 
 from core.bot.keyboards.reply import (
     get_main_menu,
     get_check_cost_menu,
 )
 
-from core.bot.keyboards.inline import get_games_menu, get_steams_menu
+from core.inventory.steam import (
+    get_steam_name,
+    get_steam_id,
+    get_all_games_info,
+    get_inventory_info,
+)
+
+from core.bot.keyboards.inline import (
+    get_games_menu,
+    get_steams_menu,
+    get_control_menu,
+    get_steam_id_menu,
+)
 
 router = Router()
 
 
 @router.message(Command(commands="start"))
-async def get_start(message: Message):
+async def get_start(message: Message, session: AsyncSession):
     """Welcome and registration a new user"""
+    telegram_id = message.from_user.id
+    result = await get_user_from_db(telegram_id=telegram_id, session=session)
+    if result is None:
+        await create_user(
+            user_name=message.from_user.full_name,
+            telegram_id=telegram_id,
+            session=session,
+        )
     await message.answer(
-        f"Привет {message.from_user.full_name}", reply_markup=get_main_menu()
+        f"Привет {message.from_user.full_name}",
+        reply_markup=get_main_menu(),
     )
 
 
 @router.message(F.text == "Мои Steam id")
-async def get_start(message: Message):
+async def get_steam_ids(message: Message, session: AsyncSession):
     telegram_id = message.from_user.id
-    await message.answer(f"Привязанные Steam ID:", reply_markup=get_steams_menu([]))
+    steam_ids_list = await get_all_steam_ids_from_db(
+        telegram_id=telegram_id, session=session
+    )
+    await message.answer(
+        f"Привязанные Steam ID:", reply_markup=get_steams_menu(steam_ids_list)
+    )
 
 
 @router.message(F.text == "Отслеживание стоимости")
-async def get_start(message: Message):
+async def get_cost(message: Message):
     telegram_id = message.from_user.id
     await message.answer(f"Отслеживание стоимости", reply_markup=get_check_cost_menu())
+
+
+class AddSteamId(StatesGroup):
+    """State to add steam id"""
+
+    added_steam_id = State()
+
+
+@router.callback_query(F.data == "add_steam_id")
+async def add_steam_id_text(callback: CallbackQuery, state: FSMContext):
+    """Steam id adding stage"""
+    await callback.message.answer(
+        text="Введите Ваш Steam ID или никнейм:",
+    )
+    await state.set_state(AddSteamId.added_steam_id)
+    await callback.answer()
+
+
+@router.message(AddSteamId.added_steam_id)
+async def add_steam_id(message: Message, session: AsyncSession, state: FSMContext):
+    """Adding a steam id"""
+    try:
+        steam_id = get_steam_id(message.text)
+        steam_name = get_steam_name(steam_id)
+    except Exception:
+        await message.answer(text=f"Некорректный Stream ID, попробуйте еще раз")
+
+    else:
+        check_steam_id = await check_steam_id_in_db(steam_id=steam_id, session=session)
+        if check_steam_id is not None:
+            await message.answer(text="Этот Steam ID уже в вашем списке")
+        else:
+            await create_steamid(
+                telegram_id=message.from_user.id,
+                steam_id=steam_id,
+                steam_name=steam_name,
+                session=session,
+            )
+            await message.answer(
+                f"Steam id '{steam_id}' с именем '{steam_name}' успешно добавлен. \n Обработка данных займет какое-то время и зависит от количества предметов и игр на Вашем аккаунте"
+            )
+            all_games_info = get_all_games_info(steam_id=steam_id)
+            steam_id_from_db = await get_steamid_from_db(steam_id, session=session)
+            for game_id, game_data in all_games_info.items():
+                await create_game(
+                    game_id=game_id,
+                    game_name=game_data["name"],
+                    game_cost=game_data["price"],
+                    time_in_game=game_data["time"],
+                    steam_id=steam_id_from_db.id,
+                    session=session,
+                )
+            items_list, classid_list = get_inventory_info(steam_id=steam_id)
+
+    await state.clear()
+
+
+@router.callback_query(F.data.startswith("steamid_"))
+async def get_current_channel(callback: CallbackQuery):
+    """Show current steam id and keyboard"""
+    steamid_name = callback.data.split("_")[1]
+    steamid_id = callback.data.split("_")[2]
+    await callback.message.answer(
+        text=f"Имя в профиле: {steamid_name} \nSteam ID: {steamid_id}",
+        reply_markup=get_control_menu(steamid_name, steamid_id),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("delete_"))
+async def delete_current_channel(callback: CallbackQuery, session: AsyncSession):
+    """Show current channel and delete keyboard"""
+    steamid_id = callback.data.split("_")[2]
+    steamid_name = callback.data.split("_")[1]
+    await delete_steam_id(steam_id=steamid_id, session=session)
+    await callback.message.delete()
+    await callback.message.answer(
+        text=f"Steam ID {steamid_id} c именем '{steamid_name}' успешно удален"
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("info_"))
+async def delete_current_channel(callback: CallbackQuery, session: AsyncSession):
+    """Show current channel and delete keyboard"""
+    steamid_id = callback.data.split("_")[2]
+    steamid_name = callback.data.split("_")[1]
+    await callback.message.answer(
+        text=f"Данные профиля {steamid_name}:",
+        reply_markup=get_steam_id_menu(steamid_name, steamid_id),
+    )
+    await callback.answer()

@@ -2,11 +2,9 @@ from random import randrange
 from time import sleep
 
 import requests
-from fake_useragent import UserAgent
+
 
 from config import APIKEY
-
-ua = UserAgent()
 
 
 def get_time_in_games(steam_id):
@@ -61,7 +59,7 @@ def get_steam_name(steam_id):
     return steam_name
 
 
-def get_games_id(steam_id: str) -> dict:
+def get_games_id(steam_id: int) -> dict:
     """Getting all games id"""
     url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/"
     games_id_full = requests.get(
@@ -78,9 +76,9 @@ def get_games_id(steam_id: str) -> dict:
     return games_id
 
 
-def get_steam_inventory(steam_id: int | str, game_id: int = 730) -> dict:
+def get_steam_inventory(steam_id: int, game_id: int = 730) -> dict:
     """Getting all inventory"""
-    steam_id = get_steam_id(steam_id)
+    # steam_id = get_steam_id(steam_id)
     url = f"https://steamcommunity.com/inventory/{steam_id}/{game_id}/2"
     data = requests.get(url)
     return data.json()
@@ -109,10 +107,10 @@ def get_items_list(items: dict) -> dict:
             market_name["type"] != "Extraordinary Collectible"
             and "Graffiti" not in market_name["market_hash_name"]
         ):
-            item = market_name["market_hash_name"]
+            name = market_name["market_hash_name"]
             appid = market_name["appid"]
             classid = market_name["classid"]
-            market_names[item] = [appid, classid]
+            market_names[classid] = {"name": name, "appid": appid}
     return market_names
 
 
@@ -122,14 +120,13 @@ def get_item_cost(name: str, game_id: int = 730, currency: int = 5) -> float:
     market_item = requests.get(
         url,
         params={"appid": game_id, "market_hash_name": name, "currency": currency},
-        headers={"user-agent": f"{ua.random}"},
     )
     cost = market_item.json()["lowest_price"].split()
     cost = float(cost[0].replace(",", "."))
     return cost
 
 
-def get_all_games_info(steam_id):
+def get_all_games_info(steam_id: int):
     final_list = {}
     games_id_list = get_games_id(steam_id)
     time_into_games = get_time_in_games(steam_id)
@@ -142,3 +139,20 @@ def get_all_games_info(steam_id):
         final_list[game_id] = {"name": game_name, "time": time, "price": price}
 
     return final_list
+
+
+def get_inventory_info(steam_id: int):
+    # games_id_list = get_games_id(steam_id)
+    # for game in games_id_list:
+    #     steam_inventory = get_steam_inventory(user_id=int(steam_id), game_id=game)
+    #     items_list = get_items_list(items=steam_inventory)
+    #     classid_list = get_classid_list(items=steam_inventory)
+    steam_inventory = get_steam_inventory(steam_id=steam_id, game_id=730)
+    # classid_list = get_classid_list(items=steam_inventory)
+    items_list = get_items_list(items=steam_inventory)
+    for item, data in items_list.items():
+        item_cost = get_item_cost(data["name"])
+        items_list[item]["price"] = item_cost
+
+    # return items_list, classid_list
+    return items_list

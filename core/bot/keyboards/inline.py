@@ -24,3 +24,28 @@ def get_games_menu(games_list: list) -> InlineKeyboardMarkup:
         )
     keyboard_builder.adjust(1)
     return keyboard_builder.as_markup()
+
+
+def get_control_menu(steamid_name: str, steamid_id) -> InlineKeyboardMarkup:
+    """Keyboard to delete a steam id"""
+    keyboard_builder = InlineKeyboardBuilder()
+    keyboard_builder.button(
+        text="Информация", callback_data=f"info_{steamid_name}_{steamid_id}"
+    )
+    keyboard_builder.button(
+        text="Удалить", callback_data=f"delete_{steamid_name}_{steamid_id}"
+    )
+    keyboard_builder.adjust(1)
+    return keyboard_builder.as_markup()
+
+
+def get_steam_id_menu(steamid_name, steamid_id):
+    keyboard_builder = InlineKeyboardBuilder()
+    keyboard_builder.button(
+        text="Инвентарь", callback_data=f"inventory_{steamid_name}_{steamid_id}"
+    )
+    keyboard_builder.button(
+        text="Игры", callback_data=f"games_{steamid_name}_{steamid_id}"
+    )
+    keyboard_builder.adjust(1)
+    return keyboard_builder.as_markup()

@@ -20,8 +20,8 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 
-from core.db.models import Base
 from config import DB_URL
+from core.db.models.models import Base
 
 target_metadata = Base.metadata
 # target_metadata = None
