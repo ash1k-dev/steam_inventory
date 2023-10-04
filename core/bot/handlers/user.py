@@ -5,12 +5,20 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.db.methods.create import create_user, create_steamid, create_game
+
+from core.db.methods.create import (
+    create_user,
+    create_steamid,
+    create_all_games,
+    # create_all_steam_items,
+)
 from core.db.methods.request import (
     get_user_from_db,
     get_steamid_from_db,
     check_steam_id_in_db,
     get_all_steam_ids_from_db,
+    get_top_games_from_db,
+    get_games_info_from_db,
 )
 from core.db.methods.delete import delete_steam_id
 
@@ -23,7 +31,7 @@ from core.inventory.steam import (
     get_steam_name,
     get_steam_id,
     get_all_games_info,
-    get_inventory_info,
+    get_all_inventory_info,
 )
 
 from core.bot.keyboards.inline import (
@@ -107,26 +115,35 @@ async def add_steam_id(message: Message, session: AsyncSession, state: FSMContex
                 session=session,
             )
             await message.answer(
-                f"Steam id '{steam_id}' с именем '{steam_name}' успешно добавлен. \n Обработка данных займет какое-то время и зависит от количества предметов и игр на Вашем аккаунте"
+                f"Steam id '{steam_id}' с именем '{steam_name}' успешно добавлен. \nОбработка данных займет какое-то время и зависит от количества предметов и игр на Вашем аккаунте"
             )
             all_games_info = get_all_games_info(steam_id=steam_id)
             steam_id_from_db = await get_steamid_from_db(steam_id, session=session)
-            for game_id, game_data in all_games_info.items():
-                await create_game(
-                    game_id=game_id,
-                    game_name=game_data["name"],
-                    game_cost=game_data["price"],
-                    time_in_game=game_data["time"],
-                    steam_id=steam_id_from_db.id,
-                    session=session,
-                )
-            items_list, classid_list = get_inventory_info(steam_id=steam_id)
+            await create_all_games(
+                all_games_info=all_games_info,
+                steam_id=steam_id_from_db.id,
+                session=session,
+            )
+            # all_steam_items_info = get_all_inventory_info(steam_id=steam_id)
+            # await create_all_steam_items(
+            #     all_steam_items_info=all_steam_items_info, session=session
+            # )
+            # for game_id, game_data in all_games_info.items():
+            #     await create_game(
+            #         game_id=game_id,
+            #         game_name=game_data["name"],
+            #         game_cost=game_data["price"],
+            #         time_in_game=game_data["time"],
+            #         steam_id=steam_id_from_db.id,
+            #         session=session,
+            #     )
+            # items_list, classid_list = get_inventory_info(steam_id=steam_id)
 
     await state.clear()
 
 
 @router.callback_query(F.data.startswith("steamid_"))
-async def get_current_channel(callback: CallbackQuery):
+async def get_current_steam_id(callback: CallbackQuery):
     """Show current steam id and keyboard"""
     steamid_name = callback.data.split("_")[1]
     steamid_id = callback.data.split("_")[2]
@@ -138,8 +155,8 @@ async def get_current_channel(callback: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("delete_"))
-async def delete_current_channel(callback: CallbackQuery, session: AsyncSession):
-    """Show current channel and delete keyboard"""
+async def delete_current_steam_id(callback: CallbackQuery, session: AsyncSession):
+    """Show current steam id and delete keyboard"""
     steamid_id = callback.data.split("_")[2]
     steamid_name = callback.data.split("_")[1]
     await delete_steam_id(steam_id=steamid_id, session=session)
@@ -151,12 +168,57 @@ async def delete_current_channel(callback: CallbackQuery, session: AsyncSession)
 
 
 @router.callback_query(F.data.startswith("info_"))
-async def delete_current_channel(callback: CallbackQuery, session: AsyncSession):
-    """Show current channel and delete keyboard"""
+async def show_info_for_current_stream_id(callback: CallbackQuery):
+    """Show info for current stream id"""
     steamid_id = callback.data.split("_")[2]
     steamid_name = callback.data.split("_")[1]
     await callback.message.answer(
         text=f"Данные профиля {steamid_name}:",
         reply_markup=get_steam_id_menu(steamid_name, steamid_id),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("games_info"))
+async def show_info_for_games(callback: CallbackQuery, session: AsyncSession):
+    """Show info for current stream id"""
+    games_info = await get_games_info_from_db(session=session)
+    number_of_games, games_cost, time_in_games = games_info[0]
+    await callback.message.answer(
+        text=f"Количество игр на аккаунте: {number_of_games}\nОбщая стоимость игр на аккаунте: {games_cost} \nОбщее количество часов в играх: {time_in_games}",
+        reply_markup=get_games_menu(),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("games_list"))
+async def show_top_of_games(callback: CallbackQuery, session: AsyncSession):
+    """Show info for current stream id"""
+    games_info_data = callback.data.split("_")
+    info_type = games_info_data[2]
+    if info_type == "time":
+        limit = 5
+        order = "time"
+        title = "ТОП 5 игр в которых проведенно больше времени:"
+    elif info_type == "cost":
+        limit = 5
+        order = "cost"
+        title = "ТОП 5 самых дорогих игр:"
+    elif info_type == "all":
+        limit = 1000
+        order = "time"
+        title = "Все ваши игры в порядке количества часов:"
+    top = ""
+    top_games = await get_top_games_from_db(
+        telegram_id=callback.from_user.id,
+        limit=limit,
+        order=order,
+        session=session,
+    )
+    for game in top_games:
+        top += f"Название игры: {game.game_name}.\nКоличество часов: {game.time_in_game} \nСтоимость: {game.game_cost} \n \n"
+    await callback.message.answer(
+        text=f"{title} \n ----------------\n{top}",
+        reply_markup=get_games_menu(),
     )
     await callback.answer()

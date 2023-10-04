@@ -14,18 +14,6 @@ def get_steams_menu(steam_id_list: list) -> InlineKeyboardMarkup:
     return keyboard_builder.as_markup()
 
 
-def get_games_menu(games_list: list) -> InlineKeyboardMarkup:
-    """Keyboard to games menu"""
-    keyboard_builder = InlineKeyboardBuilder()
-    for game in games_list:
-        keyboard_builder.button(
-            text=game.game_name,
-            callback_data=f"steamid_{game.game_name}_{game.game_id}",
-        )
-    keyboard_builder.adjust(1)
-    return keyboard_builder.as_markup()
-
-
 def get_control_menu(steamid_name: str, steamid_id) -> InlineKeyboardMarkup:
     """Keyboard to delete a steam id"""
     keyboard_builder = InlineKeyboardBuilder()
@@ -39,13 +27,23 @@ def get_control_menu(steamid_name: str, steamid_id) -> InlineKeyboardMarkup:
     return keyboard_builder.as_markup()
 
 
-def get_steam_id_menu(steamid_name, steamid_id):
+def get_steam_id_menu(steamid_name, steamid_id) -> InlineKeyboardMarkup:
     keyboard_builder = InlineKeyboardBuilder()
     keyboard_builder.button(
         text="Инвентарь", callback_data=f"inventory_{steamid_name}_{steamid_id}"
     )
+    keyboard_builder.button(text="Игры", callback_data=f"games_info")
+    keyboard_builder.adjust(1)
+    return keyboard_builder.as_markup()
+
+
+def get_games_menu() -> InlineKeyboardMarkup:
+    """Keyboard to games menu"""
+    keyboard_builder = InlineKeyboardBuilder()
     keyboard_builder.button(
-        text="Игры", callback_data=f"games_{steamid_name}_{steamid_id}"
+        text="ТОП 5 по проведенному времени", callback_data=f"games_list_time"
     )
+    keyboard_builder.button(text="ТОП 5 по стоимости", callback_data=f"games_list_cost")
+    keyboard_builder.button(text="Все игры", callback_data=f"games_list_all")
     keyboard_builder.adjust(1)
     return keyboard_builder.as_markup()
