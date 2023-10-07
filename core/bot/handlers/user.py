@@ -5,12 +5,15 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.inventory.test_data import inventory_json
 
 from core.db.methods.create import (
     create_user,
     create_steamid,
     create_all_games,
-    # create_all_steam_items,
+    create_all_steam_inventorys,
+    create_all_steam_items,
+    create_steam_items_in_inventory,
 )
 from core.db.methods.request import (
     get_user_from_db,
@@ -19,6 +22,7 @@ from core.db.methods.request import (
     get_all_steam_ids_from_db,
     get_top_games_from_db,
     get_games_info_from_db,
+    get_inventorys_id_from_db,
 )
 from core.db.methods.delete import delete_steam_id
 
@@ -32,6 +36,7 @@ from core.inventory.steam import (
     get_steam_id,
     get_all_games_info,
     get_all_inventory_info,
+    get_inventory_info_test_data,
 )
 
 from core.bot.keyboards.inline import (
@@ -124,20 +129,20 @@ async def add_steam_id(message: Message, session: AsyncSession, state: FSMContex
                 steam_id=steam_id_from_db.id,
                 session=session,
             )
-            # all_steam_items_info = get_all_inventory_info(steam_id=steam_id)
-            # await create_all_steam_items(
-            #     all_steam_items_info=all_steam_items_info, session=session
-            # )
-            # for game_id, game_data in all_games_info.items():
-            #     await create_game(
-            #         game_id=game_id,
-            #         game_name=game_data["name"],
-            #         game_cost=game_data["price"],
-            #         time_in_game=game_data["time"],
-            #         steam_id=steam_id_from_db.id,
-            #         session=session,
-            #     )
-            # items_list, classid_list = get_inventory_info(steam_id=steam_id)
+            await create_all_steam_inventorys(
+                all_games_info=all_games_info,
+                steam_id=steam_id_from_db.id,
+                session=session,
+            )
+            items_dict, classid_dict = get_inventory_info_test_data(inventory_json)
+            await create_all_steam_items(items_dict, session=session)
+            inventorys_id = await get_inventorys_id_from_db(session=session)
+            await create_steam_items_in_inventory(
+                classid_dict, inventory_id=inventorys_id.id, session=session
+            )
+            await message.answer(
+                f"Для Steam id '{steam_id}' с именем '{steam_name}' данные добавлены"
+            )
 
     await state.clear()
 
@@ -183,9 +188,9 @@ async def show_info_for_current_stream_id(callback: CallbackQuery):
 async def show_info_for_games(callback: CallbackQuery, session: AsyncSession):
     """Show info for current stream id"""
     games_info = await get_games_info_from_db(session=session)
-    number_of_games, games_cost, time_in_games = games_info[0]
+    number_of_games, total_cost, time_in_games = games_info[0]
     await callback.message.answer(
-        text=f"Количество игр на аккаунте: {number_of_games}\nОбщая стоимость игр на аккаунте: {games_cost} \nОбщее количество часов в играх: {time_in_games}",
+        text=f"Количество игр на аккаунте: {number_of_games}\nОбщая стоимость игр на аккаунте: {total_cost} \nОбщее количество часов в играх: {time_in_games}",
         reply_markup=get_games_menu(),
     )
     await callback.answer()
@@ -222,3 +227,21 @@ async def show_top_of_games(callback: CallbackQuery, session: AsyncSession):
         reply_markup=get_games_menu(),
     )
     await callback.answer()
+
+
+# @router.callback_query(F.data.startswith("inventory_"))
+# async def show_info_for_items(callback: CallbackQuery, session: AsyncSession):
+#     """Show info for current stream id"""
+#     inventory_info_data = callback.data.split("_")
+#     steamid_name = inventory_info_data[1]
+#     steamid_id = inventory_info_data[2]
+#     total_cost = pass
+#     first_total_cost = pass
+#     amount = pass
+#     max_cost = pass
+#     min_cost = pass
+#     await callback.message.answer(
+#         text=f"Количество предметов на аккаунте: {amount}\nОбщая стоимость предметов на аккаунте: {total_cost} \nМаксимальная стоимость предмета: {max_cost} \nМинимальная стоимость предмета: {min_cost}",
+#         reply_markup=get_games_menu(),
+#     )
+#     await callback.answer()

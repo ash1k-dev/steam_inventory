@@ -1,7 +1,7 @@
 from sqlalchemy import select, desc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.db.models.models import User, SteamId, Game
+from core.db.models.models import User, SteamId, Game, SteamInventory
 
 
 async def get_user_from_db(telegram_id: int, session: AsyncSession):
@@ -27,6 +27,7 @@ async def get_all_steam_ids_from_db(telegram_id: int, session: AsyncSession):
     """Getting all steam ids from the database"""
     user = await get_user_from_db(telegram_id=telegram_id, session=session)
     statement = select(SteamId).where(SteamId.user_id == user.id)
+    # statement = select(SteamId).filter(User.telegram_id == telegram_id)
     result = await session.execute(statement)
     return result.scalars().all()
 
@@ -63,7 +64,7 @@ async def get_top_games_from_db(
 
 async def get_games_info_from_db(
     session: AsyncSession,
-    steam_id: int = 13,
+    steam_id: int = 14,
 ):
     statement = select(
         (func.count(Game.time_in_game)),
@@ -72,3 +73,9 @@ async def get_games_info_from_db(
     ).where(Game.steam_id == steam_id)
     result = await session.execute(statement)
     return result.all()
+
+
+async def get_inventorys_id_from_db(session: AsyncSession):
+    statement = select(SteamInventory).where(SteamInventory.games_id == 730)
+    result = await session.execute(statement)
+    return result.scalars().one_or_none()

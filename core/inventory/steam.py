@@ -3,6 +3,7 @@ from time import sleep
 
 import requests
 
+# import test_data
 
 from config import APIKEY
 
@@ -91,8 +92,8 @@ def get_classid_list(items: dict) -> dict:
     """
     classid_names = {}
     for classid in items["assets"]:
-        id = classid["classid"]
-        if classid_names[id] in classid_names:
+        id = int(classid["classid"])
+        if id in classid_names:
             classid_names[id] += 1
         else:
             classid_names[id] = 1
@@ -103,14 +104,14 @@ def get_items_list(items: dict) -> dict:
     """Getting items names from inventory"""
     market_names = {}
     for market_name in items["descriptions"]:
-        if (
-            market_name["type"] != "Extraordinary Collectible"
-            and "Graffiti" not in market_name["market_hash_name"]
-        ):
-            name = market_name["market_hash_name"]
-            appid = market_name["appid"]
-            classid = market_name["classid"]
-            market_names[classid] = {"name": name, "appid": appid}
+        # if (
+        #     market_name["type"] != "Extraordinary Collectible"
+        #     and "Graffiti" not in market_name["market_hash_name"]
+        # ):
+        name = market_name["market_hash_name"]
+        appid = market_name["appid"]
+        classid = market_name["classid"]
+        market_names[classid] = {"name": name, "appid": appid}
     return market_names
 
 
@@ -122,7 +123,7 @@ def get_item_cost(name: str, game_id: int = 730, currency: int = 5) -> float:
         params={"appid": game_id, "market_hash_name": name, "currency": currency},
     )
     cost = market_item.json()["lowest_price"].split()
-    cost = float(cost[0].replace(",", "."))
+    cost = int(float(cost[0].replace(",", ".")))
     return cost
 
 
@@ -141,7 +142,7 @@ def get_all_games_info(steam_id: int):
     return final_list
 
 
-def get_inventory_info(steam_id: int):
+def get_all_inventory_info(steam_id: int):
     # games_id_list = get_games_id(steam_id)
     # for game in games_id_list:
     #     steam_inventory = get_steam_inventory(user_id=int(steam_id), game_id=game)
@@ -156,3 +157,20 @@ def get_inventory_info(steam_id: int):
 
     # return items_list, classid_list
     return items_list
+
+
+def get_inventory_info_test_data(test_data):
+    # steam_inventory = get_steam_inventory(steam_id=steam_id, game_id=730)
+    steam_inventory = test_data
+    classid_list = get_classid_list(items=steam_inventory)
+    items_list = get_items_list(items=steam_inventory)
+    for item, data in items_list.items():
+        try:
+            item_cost = get_item_cost(data["name"])
+            items_list[item]["price"] = item_cost
+        except Exception:
+            # item_cost = randrange(10, 100)
+            items_list[item]["price"] = 0
+        sleep(randrange(4, 10))
+
+    return items_list, classid_list
