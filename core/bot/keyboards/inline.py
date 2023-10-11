@@ -32,7 +32,9 @@ def get_steam_id_menu(steamid_name, steamid_id) -> InlineKeyboardMarkup:
     keyboard_builder.button(
         text="Инвентарь", callback_data=f"inventory_{steamid_name}_{steamid_id}"
     )
-    keyboard_builder.button(text="Игры", callback_data=f"games_info")
+    keyboard_builder.button(
+        text="Игры", callback_data=f"games_info_{steamid_name}_{steamid_id}"
+    )
     keyboard_builder.adjust(1)
     return keyboard_builder.as_markup()
 
@@ -45,5 +47,19 @@ def get_games_menu() -> InlineKeyboardMarkup:
     )
     keyboard_builder.button(text="ТОП 5 по стоимости", callback_data=f"games_list_cost")
     keyboard_builder.button(text="Все игры", callback_data=f"games_list_all")
+    keyboard_builder.adjust(1)
+    return keyboard_builder.as_markup()
+
+
+def get_items_menu(steam_id: int) -> InlineKeyboardMarkup:
+    """Keyboard to items menu"""
+    keyboard_builder = InlineKeyboardBuilder()
+    keyboard_builder.button(
+        text="ТОП 5 предметов по приросту стоимости",
+        callback_data=f"items_list_top_{steam_id}",
+    )
+    keyboard_builder.button(
+        text="Все предметы", callback_data=f"items_list_all_{steam_id}"
+    )
     keyboard_builder.adjust(1)
     return keyboard_builder.as_markup()
