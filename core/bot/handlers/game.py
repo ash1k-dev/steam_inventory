@@ -10,53 +10,81 @@ from core.db.methods.request import (
 
 from core.bot.keyboards.inline import (
     get_games_menu,
+    get_games_back_menu,
+    get_pagination,
 )
+
+from core.bot.keyboards.inline import GamesCallbackFactory
+
 
 router = Router()
 
 
-@router.callback_query(F.data.startswith("games_info"))
-async def show_info_for_games(callback: CallbackQuery, session: AsyncSession):
-    """Show info for current stream id"""
-    games_info_data = callback.data.split("_")
-    steamid_id = int(games_info_data[3])
-    games_info = await get_games_info_from_db(steam_id=steamid_id, session=session)
-    number_of_games, total_cost, time_in_games = games_info[0]
-    await callback.message.answer(
-        text=f"Количество игр на аккаунте: {number_of_games}\nОбщая стоимость игр на аккаунте: {total_cost} \nОбщее количество часов в играх: {time_in_games}",
-        reply_markup=get_games_menu(),
-    )
-    await callback.answer()
-
-
-@router.callback_query(F.data.startswith("games_list"))
-async def show_top_of_games(callback: CallbackQuery, session: AsyncSession):
-    """Show info for current stream id"""
-    games_info_data = callback.data.split("_")
-    info_type = games_info_data[2]
-    if info_type == "time":
-        limit = 5
-        order = "time"
-        title = "ТОП 5 игр в которых проведенно больше времени:"
-    elif info_type == "cost":
-        limit = 5
-        order = "cost"
-        title = "ТОП 5 самых дорогих игр:"
-    elif info_type == "all":
-        limit = 1000
-        order = "time"
-        title = "Все ваши игры в порядке количества часов:"
-    top = ""
-    top_games = await get_top_games_from_db(
-        telegram_id=callback.from_user.id,
-        limit=limit,
-        order=order,
-        session=session,
-    )
-    for game in top_games:
-        top += f"Название игры: {game.game_name}.\nКоличество часов: {game.time_in_game} \nСтоимость: {game.game_cost} \n \n"
-    await callback.message.answer(
-        text=f"{title} \n ----------------\n{top}",
-        reply_markup=get_games_menu(),
-    )
+@router.callback_query(GamesCallbackFactory.filter())
+async def test_change(
+    callback: CallbackQuery, callback_data: GamesCallbackFactory, session: AsyncSession
+):
+    if callback_data.action == "info" or callback_data.action == "back":
+        steamid_id = int(callback_data.steam_id)
+        games_info = await get_games_info_from_db(steam_id=steamid_id, session=session)
+        number_of_games, total_cost, time_in_games = games_info[0]
+        await callback.message.answer(
+            text=f"Количество игр на аккаунте: {number_of_games}\n"
+            f"Общая стоимость игр на аккаунте: {total_cost}\n"
+            f"Общее количество часов в играх: {time_in_games}",
+            reply_markup=get_games_menu(
+                steam_id=callback_data.steam_id, steam_name=callback_data.steam_name
+            ),
+        )
+    else:
+        if callback_data.action == "time":
+            all_games = await get_top_games_from_db(
+                telegram_id=callback.from_user.id,
+                limit=callback_data.limit,
+                order=callback_data.order,
+                session=session,
+            )
+        elif callback_data.action == "cost":
+            all_games = await get_top_games_from_db(
+                telegram_id=callback.from_user.id,
+                limit=callback_data.limit,
+                order=callback_data.order,
+                session=session,
+            )
+        elif callback_data.action == "all":
+            all_games = await get_top_games_from_db(
+                telegram_id=callback.from_user.id,
+                limit=callback_data.limit,
+                order=callback_data.order,
+                session=session,
+            )
+        games = []
+        for game in all_games:
+            games.append(
+                f"Название игры: {game.game_name}\n"
+                f"Количество часов: {game.time_in_game}\n"
+                f"Стоимость: {game.game_cost}\n\n"
+            )
+        if len(games) <= 5:
+            await callback.message.answer(
+                text=f"{''.join(games)}",
+                reply_markup=get_games_back_menu(
+                    steam_id=callback_data.steam_id, steam_name=callback_data.steam_name
+                ),
+            )
+        else:
+            await callback.message.edit_text(
+                text=f"{games[callback_data.page]}",
+                disable_webpage_preview=True,
+                reply_markup=get_pagination(
+                    action="all",
+                    callbackfactory=GamesCallbackFactory,
+                    page=callback_data.page,
+                    pages_amount=callback_data.pages_amount,
+                    steam_id=callback_data.steam_id,
+                    steam_name=callback_data.steam_name,
+                    limit=callback_data.limit,
+                    order=callback_data.order,
+                ),
+            )
     await callback.answer()
