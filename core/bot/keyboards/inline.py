@@ -21,16 +21,27 @@ class GamesCallbackFactory(CallbackData, prefix="games"):
     pages_amount: Optional[int] = None
 
 
+class SteamidCallbackFactory(CallbackData, prefix="steamid"):
+    action: Optional[str] = None
+    steam_name: Optional[str] = None
+    steam_id: Optional[int] = None
+
+
 def get_steams_menu(steam_id_list: list) -> InlineKeyboardMarkup:
     """Keyboard to steams menu"""
     keyboard_builder = InlineKeyboardBuilder()
     for steam_id in steam_id_list:
         keyboard_builder.button(
             text=steam_id.steam_name,
-            callback_data=f"steamid_{steam_id.steam_name}_{steam_id.steam_id}",
+            callback_data=SteamidCallbackFactory(
+                action="steamid",
+                steam_name=steam_id.steam_name,
+                steam_id=steam_id.steam_id,
+            ),
         )
-    keyboard_builder.button(text="Добавить 🪄", callback_data="add_steam_id")
-    # keyboard_builder.button(text="Добавить 🪄", callback_data="add")
+    keyboard_builder.button(
+        text="Добавить 🪄", callback_data=SteamidCallbackFactory(action="add_steam_id")
+    )
     keyboard_builder.adjust(1)
     return keyboard_builder.as_markup()
 
@@ -39,12 +50,21 @@ def get_control_menu(steamid_name: str, steamid_id) -> InlineKeyboardMarkup:
     """Keyboard to delete a steam id"""
     keyboard_builder = InlineKeyboardBuilder()
     keyboard_builder.button(
-        text="Информация", callback_data=f"info_{steamid_name}_{steamid_id}"
+        text="Информация",
+        callback_data=SteamidCallbackFactory(
+            action="info",
+            steam_name=steamid_name,
+            steam_id=steamid_id,
+        ),
     )
     keyboard_builder.button(
-        text="Удалить", callback_data=f"delete_{steamid_name}_{steamid_id}"
+        text="Удалить",
+        callback_data=SteamidCallbackFactory(
+            action="delete",
+            steam_name=steamid_name,
+            steam_id=steamid_id,
+        ),
     )
-    keyboard_builder.button(text="Назад", callback_data="back")
     keyboard_builder.adjust(1)
     return keyboard_builder.as_markup()
 
@@ -68,7 +88,12 @@ def get_steam_id_menu(steamid_name, steamid_id) -> InlineKeyboardMarkup:
         ),
     )
     keyboard_builder.button(
-        text="Назад", callback_data=f"steamid_{steamid_name}_{steamid_id}"
+        text="Назад",
+        callback_data=SteamidCallbackFactory(
+            action="steamid",
+            steam_name=steamid_name,
+            steam_id=steamid_id,
+        ),
     )
     keyboard_builder.adjust(1)
     return keyboard_builder.as_markup()
@@ -109,7 +134,12 @@ def get_games_menu(steam_id, steam_name) -> InlineKeyboardMarkup:
             pages_amount=5,
         ),
     )
-    keyboard_builder.button(text="Назад", callback_data=f"info_{steam_name}_{steam_id}")
+    keyboard_builder.button(
+        text="Назад",
+        callback_data=SteamidCallbackFactory(
+            action="info", steam_name=steam_name, steam_id=steam_id
+        ),
+    )
     keyboard_builder.adjust(1)
     return keyboard_builder.as_markup()
 
@@ -152,7 +182,12 @@ def get_items_menu(steam_id: int, steam_name: str) -> InlineKeyboardMarkup:
             pages_amount=10,
         ),
     )
-    keyboard_builder.button(text="Назад", callback_data=f"info_{steam_name}_{steam_id}")
+    keyboard_builder.button(
+        text="Назад",
+        callback_data=SteamidCallbackFactory(
+            action="info", steam_name=steam_name, steam_id=steam_id
+        ),
+    )
     keyboard_builder.adjust(1)
     return keyboard_builder.as_markup()
 
@@ -249,4 +284,19 @@ def get_pagination(
             ),
         )
         keyboard_builder.adjust(3, 1, repeat=True)
+    return keyboard_builder.as_markup()
+
+
+def get_items_back_menu(steam_id, steam_name) -> InlineKeyboardMarkup:
+    """Keyboard to games menu"""
+    keyboard_builder = InlineKeyboardBuilder()
+    keyboard_builder.button(
+        text="Назад",
+        callback_data=ItemsCallbackFactory(
+            action="info",
+            steam_name=steam_name,
+            steam_id=steam_id,
+        ),
+    )
+    keyboard_builder.adjust(1)
     return keyboard_builder.as_markup()

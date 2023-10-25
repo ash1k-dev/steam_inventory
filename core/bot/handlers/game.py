@@ -21,7 +21,7 @@ router = Router()
 
 
 @router.callback_query(GamesCallbackFactory.filter())
-async def test_change(
+async def get_games(
     callback: CallbackQuery, callback_data: GamesCallbackFactory, session: AsyncSession
 ):
     if callback_data.action == "info" or callback_data.action == "back":
@@ -58,29 +58,34 @@ async def test_change(
                 order=callback_data.order,
                 session=session,
             )
-        games = []
+        games_list = []
+        grouped_games_list = []
         for game in all_games:
-            games.append(
+            games_list.append(
                 f"Название игры: {game.game_name}\n"
                 f"Количество часов: {game.time_in_game}\n"
-                f"Стоимость: {game.game_cost}\n\n"
+                f"Стоимость: {game.game_cost}\n"
+                f"Ссылка: https://store.steampowered.com/app/{game.game_id}\n\n"
             )
-        if len(games) <= 5:
+        for i in range(0, len(games_list), 5):
+            grouped_games_list.append("".join(games_list[i : i + 5]))
+        if len(games_list) <= 5:
             await callback.message.answer(
-                text=f"{''.join(games)}",
+                text=f"{''.join(games_list)}",
+                disable_web_page_preview=True,
                 reply_markup=get_games_back_menu(
                     steam_id=callback_data.steam_id, steam_name=callback_data.steam_name
                 ),
             )
         else:
             await callback.message.edit_text(
-                text=f"{games[callback_data.page]}",
-                disable_webpage_preview=True,
+                text=f"{grouped_games_list[callback_data.page]}",
+                disable_web_page_preview=True,
                 reply_markup=get_pagination(
                     action="all",
                     callbackfactory=GamesCallbackFactory,
                     page=callback_data.page,
-                    pages_amount=callback_data.pages_amount,
+                    pages_amount=len(grouped_games_list),
                     steam_id=callback_data.steam_id,
                     steam_name=callback_data.steam_name,
                     limit=callback_data.limit,
