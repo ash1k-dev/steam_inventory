@@ -22,6 +22,7 @@ class User(Base):
         return f"{self.__class__.__name__}, name: {self.user_name}, telegram_id: {self.telegram_id}"
 
 
+# Steam
 class SteamId(Base):
     steam_id = Column(BigInteger)
     steam_name = Column(String)
@@ -78,7 +79,11 @@ class SteamItemsInInventory(Base):
     )
 
     steam_inventorys = relationship("SteamInventory", back_populates="items_in")
-    steam_item = relationship("SteamItem", back_populates="items_in", uselist=False)
+    steam_item = relationship(
+        "SteamItem",
+        back_populates="items_in",
+        uselist=False,
+    )
 
     def __repr__(self):
         return (

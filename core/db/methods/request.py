@@ -1,5 +1,5 @@
 from sqlalchemy import select, desc, func
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, contains_eager, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db.models.models import (
@@ -20,12 +20,6 @@ async def get_user_from_db(telegram_id: int, session: AsyncSession):
 
 
 async def get_steamid_from_db(steam_id: int, session: AsyncSession):
-    statement = select(SteamId).where(SteamId.steam_id == steam_id)
-    result = await session.execute(statement)
-    return result.scalars().one_or_none()
-
-
-async def check_steam_id_in_db(steam_id: int, session):
     statement = select(SteamId).where(SteamId.steam_id == steam_id)
     result = await session.execute(statement)
     return result.scalars().one_or_none()
@@ -59,6 +53,8 @@ async def get_top_games_from_db(
         order = Game.time_in_game
     elif order == "cost":
         order = Game.game_cost
+    elif order == "all":
+        order = Game.time_in_game
     user = await get_user_from_db(telegram_id=telegram_id, session=session)
     statement = (
         select(Game)
@@ -102,9 +98,18 @@ async def get_amount_and_items_info_from_db(
     )
     statement = (
         select(SteamItemsInInventory)
+        .join(SteamItemsInInventory.steam_item)
         .options(joinedload(SteamItemsInInventory.steam_item))
         .where(SteamInventory.id == inventory_id.id)
-        .order_by(desc(SteamItemsInInventory.amount))
+        .order_by(desc(SteamItemsInInventory.steam_item))
     )
+    result = await session.execute(statement)
+    return result.scalars().all()
+
+
+async def get_items_list_from_db(
+    session: AsyncSession,
+):
+    statement = select(SteamItem)
     result = await session.execute(statement)
     return result.scalars().all()

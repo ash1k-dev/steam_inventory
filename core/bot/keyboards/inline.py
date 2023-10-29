@@ -163,9 +163,19 @@ def get_items_menu(steam_id: int, steam_name: str) -> InlineKeyboardMarkup:
     """Keyboard to items menu"""
     keyboard_builder = InlineKeyboardBuilder()
     keyboard_builder.button(
+        text="ТОП 5 предметов по стоимости",
+        callback_data=ItemsCallbackFactory(
+            action="top_cost",
+            steam_name=steam_name,
+            steam_id=steam_id,
+            page=0,
+            pages_amount=5,
+        ),
+    )
+    keyboard_builder.button(
         text="ТОП 5 предметов по приросту стоимости",
         callback_data=ItemsCallbackFactory(
-            action="top",
+            action="top_gain",
             steam_name=steam_name,
             steam_id=steam_id,
             page=0,
