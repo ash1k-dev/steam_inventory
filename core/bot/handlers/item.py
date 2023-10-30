@@ -1,6 +1,8 @@
 from aiogram import Router
 from aiogram.types import CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
+from aiogram.utils import markdown
+
 
 from urllib.parse import quote
 
@@ -67,6 +69,12 @@ async def get_items(
                 }
             )
     difference_total_cost = total_cost - first_total_cost
+    # data = {"test": 1}
+    # json_images = json.dumps(data)
+    # await storage.redis.set("images10", json_images, ex=10)
+    # unpacked_images = await storage.redis.get("images")
+    # unpacked_images = json.loads(unpacked_images)
+    # print(unpacked_images)
     if callback_data.action == "all":
         grouped_items_list = get_grouped_items_list(
             items_dict=items_dict, filter="cost"
@@ -107,10 +115,10 @@ async def get_items(
         )
     elif callback_data.action == "info" or callback_data.action == "back":
         await callback.message.answer(
-            text=f"Аккаунт {steam_name}\n"
-            f"Количество предметов на аккаунте: {amount}\n"
-            f"Общая стоимость предметов на аккаунте: {total_cost}руб.\n"
-            f"Первоначальная стоимость предметов на аккаунте: {first_total_cost}руб.\n"
+            text=f"{markdown.hbold('Аккаунт ' + steam_name)}\n"
+            f"Количество предметов: {amount}\n"
+            f"Общая стоимость предметов: {total_cost}руб.\n"
+            f"Первоначальная стоимость предметов: {first_total_cost}руб.\n"
             f"Прирост стоимости: {difference_total_cost}руб.({int((difference_total_cost/first_total_cost)*100)}%)\n"
             f"Максимальная стоимость предмета: {max_cost} \n"
             f"Минимальная стоимость предмета: {min_cost}",
@@ -127,12 +135,12 @@ def get_grouped_items_list(items_dict: list, filter: str) -> list:
     items_dict = sorted(items_dict, key=lambda x: x[f"{filter}"], reverse=True)
     for item in items_dict:
         items_list.append(
-            f"{item['name']}\n"
-            f"Текущая стоимость предмета: {item['cost']}руб.\n"
+            f"{markdown.hbold(item['name'])}\n"
+            f"Текущая стоимость: {item['cost']}руб.\n"
             f"Первоначальная стоимость: {item['first_cost']}руб.\n"
             f"Прирост стоимости: {item['diff']}руб.({item['diff_percent']}%)\n"
             f"Количество предметов: {item['amount']}\n"
-            f"Ссылка на торговую площадку: {item['store']}\n\n"
+            f"Ссылка на торговую площадку: {markdown.hlink('SteamLink', item['store'])}\n\n"
         )
     for i in range(0, len(items_list), 5):
         grouped_items_list.append("".join(items_list[i : i + 5]))

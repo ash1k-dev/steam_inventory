@@ -1,5 +1,7 @@
-from aiogram import Bot, F, Router
+from aiogram import Router
 from aiogram.types import CallbackQuery
+from aiogram.utils import markdown
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -29,9 +31,10 @@ async def get_games(
         games_info = await get_games_info_from_db(steam_id=steamid_id, session=session)
         number_of_games, total_cost, time_in_games = games_info[0]
         await callback.message.answer(
-            text=f"Количество игр на аккаунте: {number_of_games}\n"
-            f"Общая стоимость игр на аккаунте: {total_cost}\n"
-            f"Общее количество часов в играх: {time_in_games}",
+            text=f"{markdown.hbold('Аккаунт ' + callback_data.steam_name)}\n"
+            f"Количество: {number_of_games}\n"
+            f"Общая стоимость: {total_cost}\n"
+            f"Общее количество часов: {time_in_games}",
             reply_markup=get_games_menu(
                 steam_id=callback_data.steam_id, steam_name=callback_data.steam_name
             ),
@@ -62,10 +65,11 @@ async def get_games(
         grouped_games_list = []
         for game in all_games:
             games_list.append(
-                f"Название игры: {game.game_name}\n"
+                f"{markdown.hbold(game.game_name)}\n"
                 f"Количество часов: {game.time_in_game}\n"
                 f"Стоимость: {game.game_cost}\n"
-                f"Ссылка: https://store.steampowered.com/app/{game.game_id}\n\n"
+                f"Ссылка на торговую площадку: "
+                f"{markdown.hlink('SteamLink', f'https://store.steampowered.com/app/{game.game_id}')}\n\n"
             )
         for i in range(0, len(games_list), 5):
             grouped_games_list.append("".join(games_list[i : i + 5]))
