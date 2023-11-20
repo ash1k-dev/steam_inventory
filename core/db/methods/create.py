@@ -9,7 +9,14 @@ from core.db.models.models import (
     SteamItem,
 )
 
-from core.db.methods.request import get_user_from_db
+from core.db.methods.request import (
+    get_user_from_db,
+    get_items_list_from_db,
+    get_steamid_from_db,
+    get_inventorys_id_from_db,
+)
+from core.inventory.steam import get_all_games_info, get_inventory_info_test_data
+from core.inventory.test_data import inventory_json
 
 
 async def create_user(user_name: str, telegram_id: int, session: AsyncSession) -> None:
@@ -44,15 +51,18 @@ async def create_all_steam_inventorys(
 
 async def create_all_steam_items(items_dict: dict, session: AsyncSession) -> None:
     items = []
+    items_list = await get_items_list_from_db(session=session)
+    items_list = [int(item.classid) for item in items_list]
     for item_id, item_data in items_dict.items():
-        steam_item = SteamItem(
-            name=item_data["name"],
-            app_id=item_data["appid"],
-            classid=int(item_id),
-            first_item_cost=item_data["price"],
-            item_cost=item_data["price"],
-        )
-        items.append(steam_item)
+        if int(item_id) not in items_list:
+            steam_item = SteamItem(
+                name=item_data["name"],
+                app_id=item_data["appid"],
+                classid=int(item_id),
+                first_item_cost=item_data["price"],
+                item_cost=item_data["price"],
+            )
+            items.append(steam_item)
     session.add_all(items)
     await session.commit()
 
@@ -85,3 +95,32 @@ async def create_all_games(
         all_games.append(game)
     session.add_all(all_games)
     await session.commit()
+
+
+async def add_initial_data(message, session, steam_id, steam_name):
+    await create_steamid(
+        telegram_id=message.from_user.id,
+        steam_id=steam_id,
+        steam_name=steam_name,
+        session=session,
+    )
+    all_games_info = get_all_games_info(steam_id=steam_id)
+    steam_id_from_db = await get_steamid_from_db(steam_id, session=session)
+    await create_all_games(
+        all_games_info=all_games_info,
+        steam_id=steam_id_from_db.id,
+        session=session,
+    )
+    await create_all_steam_inventorys(
+        all_games_info=all_games_info,
+        steam_id=steam_id_from_db.id,
+        session=session,
+    )
+    items_dict, classid_dict = get_inventory_info_test_data(inventory_json)
+    await create_all_steam_items(items_dict, session=session)
+    inventorys_id = await get_inventorys_id_from_db(
+        session=session, steam_id=steam_id_from_db.id
+    )
+    await create_steam_items_in_inventory(
+        classid_dict, inventory_id=inventorys_id.id, session=session
+    )

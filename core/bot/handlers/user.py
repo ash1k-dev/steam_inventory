@@ -1,27 +1,21 @@
-from aiogram import Bot, F, Router
+from aiogram import F, Router, Bot
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.inventory.test_data import inventory_json
-
+from core.bot.utils.admin_notification import recording_steam_data_error
 from core.db.methods.create import (
     create_user,
-    create_steamid,
-    create_all_games,
-    create_all_steam_inventorys,
-    create_all_steam_items,
-    create_steam_items_in_inventory,
+    add_initial_data,
 )
 from core.db.methods.request import (
     get_user_from_db,
     get_steamid_from_db,
-    check_steam_id_in_db,
     get_all_steam_ids_from_db,
-    get_inventorys_id_from_db,
 )
+
 from core.db.methods.delete import delete_steam_id
 
 from core.bot.keyboards.reply import (
@@ -32,17 +26,23 @@ from core.bot.keyboards.reply import (
 from core.inventory.steam import (
     get_steam_name,
     get_steam_id,
-    get_all_games_info,
-    get_inventory_info_test_data,
 )
 
 from core.bot.keyboards.inline import (
+    SteamidCallbackFactory,
     get_steams_menu,
     get_control_menu,
     get_steam_id_menu,
 )
 
 router = Router()
+from aiogram.fsm.storage.redis import RedisStorage
+
+
+class AddSteamId(StatesGroup):
+    """State to user"""
+
+    added_steam_id = State()
 
 
 @router.message(Command(commands="start"))
@@ -74,29 +74,20 @@ async def get_steam_ids(message: Message, session: AsyncSession):
 
 
 @router.message(F.text == "Отслеживание стоимости")
-async def get_cost(message: Message):
+async def get_cost(message: Message, session: AsyncSession):
     telegram_id = message.from_user.id
+    # await update_all_items(session=session)
     await message.answer(f"Отслеживание стоимости", reply_markup=get_check_cost_menu())
 
 
-class AddSteamId(StatesGroup):
-    """State to add steam id"""
-
-    added_steam_id = State()
-
-
-@router.callback_query(F.data == "add_steam_id")
-async def add_steam_id_text(callback: CallbackQuery, state: FSMContext):
-    """Steam id adding stage"""
-    await callback.message.answer(
-        text="Введите Ваш Steam ID или никнейм:",
-    )
-    await state.set_state(AddSteamId.added_steam_id)
-    await callback.answer()
-
-
 @router.message(AddSteamId.added_steam_id, flags={"long_operation": "upload_document"})
-async def add_steam_id(message: Message, session: AsyncSession, state: FSMContext):
+async def add_steam_id(
+    message: Message,
+    bot: Bot,
+    session: AsyncSession,
+    state: FSMContext,
+    storage: RedisStorage,
+):
     """Adding a steam id"""
     try:
         steam_id = get_steam_id(message.text)
@@ -105,76 +96,60 @@ async def add_steam_id(message: Message, session: AsyncSession, state: FSMContex
         await message.answer(text=f"Некорректный Stream ID, попробуйте еще раз")
 
     else:
-        check_steam_id = await check_steam_id_in_db(steam_id=steam_id, session=session)
+        check_steam_id = await get_steamid_from_db(steam_id=steam_id, session=session)
         if check_steam_id is not None:
             await message.answer(text="Этот Steam ID уже в вашем списке")
         else:
-            await create_steamid(
-                telegram_id=message.from_user.id,
-                steam_id=steam_id,
-                steam_name=steam_name,
-                session=session,
-            )
             await message.answer(
-                f"Steam id '{steam_id}' с именем '{steam_name}' успешно добавлен. \nОбработка данных займет какое-то время и зависит от количества предметов и игр на Вашем аккаунте"
+                f"Происходит добавление steam id '{steam_id}' с именем '{steam_name}'.\n"
+                f"Обработка данных займет какое-то время и зависит от количества предметов и игр на Вашем аккаунте"
             )
-            all_games_info = get_all_games_info(steam_id=steam_id)
-            steam_id_from_db = await get_steamid_from_db(steam_id, session=session)
-            await create_all_games(
-                all_games_info=all_games_info,
-                steam_id=steam_id_from_db.id,
-                session=session,
-            )
-            await create_all_steam_inventorys(
-                all_games_info=all_games_info,
-                steam_id=steam_id_from_db.id,
-                session=session,
-            )
-            items_dict, classid_dict = get_inventory_info_test_data(inventory_json)
-            await create_all_steam_items(items_dict, session=session)
-            inventorys_id = await get_inventorys_id_from_db(session=session)
-            await create_steam_items_in_inventory(
-                classid_dict, inventory_id=inventorys_id.id, session=session
-            )
+            await add_initial_data(
+                    message=message,
+                    session=session,
+                    steam_id=steam_id,
+                    steam_name=steam_name,
+                )
             await message.answer(
-                f"Для Steam id '{steam_id}' с именем '{steam_name}' данные добавлены"
-            )
+                    f"Для Steam id '{steam_id}' с именем '{steam_name}' данные добавлены"
+                )
 
     await state.clear()
 
 
-@router.callback_query(F.data.startswith("steamid_"))
-async def get_current_steam_id(callback: CallbackQuery):
-    """Show current steam id and keyboard"""
-    steamid_name = callback.data.split("_")[1]
-    steamid_id = callback.data.split("_")[2]
-    await callback.message.answer(
-        text=f"Имя в профиле: {steamid_name} \nSteam ID: {steamid_id}",
-        reply_markup=get_control_menu(steamid_name, steamid_id),
-    )
-    await callback.answer()
-
-
-@router.callback_query(F.data.startswith("delete_"))
-async def delete_current_steam_id(callback: CallbackQuery, session: AsyncSession):
-    """Show current steam id and delete keyboard"""
-    steamid_id = callback.data.split("_")[2]
-    steamid_name = callback.data.split("_")[1]
-    await delete_steam_id(steam_id=steamid_id, session=session)
-    await callback.message.delete()
-    await callback.message.answer(
-        text=f"Steam ID {steamid_id} c именем '{steamid_name}' успешно удален"
-    )
-    await callback.answer()
-
-
-@router.callback_query(F.data.startswith("info_"))
-async def show_info_for_current_stream_id(callback: CallbackQuery):
-    """Show info for current stream id"""
-    steamid_id = callback.data.split("_")[2]
-    steamid_name = callback.data.split("_")[1]
-    await callback.message.answer(
-        text=f"Данные профиля {steamid_name}:",
-        reply_markup=get_steam_id_menu(steamid_name, steamid_id),
-    )
-    await callback.answer()
+@router.callback_query(SteamidCallbackFactory.filter())
+async def get_steam(
+    callback: CallbackQuery,
+    callback_data: SteamidCallbackFactory,
+    session: AsyncSession,
+    state: FSMContext,
+):
+    if callback_data.action == "info":
+        await callback.message.answer(
+            text=f"Данные профиля {callback_data.steam_name}:",
+            reply_markup=get_steam_id_menu(
+                callback_data.steam_name, callback_data.steam_id
+            ),
+        )
+        await callback.answer()
+    elif callback_data.action == "delete":
+        await delete_steam_id(steam_id=callback_data.steam_id, session=session)
+        await callback.message.delete()
+        await callback.message.answer(
+            text=f"Steam ID {callback_data.steam_id} c именем '{callback_data.steam_name}' успешно удален"
+        )
+        await callback.answer()
+    elif callback_data.action == "steamid":
+        await callback.message.answer(
+            text=f"Имя в профиле: {callback_data.steam_name} \nSteam ID: {callback_data.steam_id}",
+            reply_markup=get_control_menu(
+                callback_data.steam_name, callback_data.steam_id
+            ),
+        )
+        await callback.answer()
+    elif callback_data.action == "add_steam_id":
+        await callback.message.answer(
+            text="Введите Ваш Steam ID или никнейм:",
+        )
+        await state.set_state(AddSteamId.added_steam_id)
+        await callback.answer()
