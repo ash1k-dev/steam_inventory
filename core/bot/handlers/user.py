@@ -104,15 +104,42 @@ async def add_steam_id(
                 f"Происходит добавление steam id '{steam_id}' с именем '{steam_name}'.\n"
                 f"Обработка данных займет какое-то время и зависит от количества предметов и игр на Вашем аккаунте"
             )
-            await add_initial_data(
+            try:
+                await add_initial_data(
                     message=message,
                     session=session,
                     steam_id=steam_id,
                     steam_name=steam_name,
                 )
-            await message.answer(
+                await message.answer(
                     f"Для Steam id '{steam_id}' с именем '{steam_name}' данные добавлены"
                 )
+            except BaseException as e:
+                check_earlier_error = await storage.redis.get(name=str(steam_id))
+                check_creating_steamid = await get_steamid_from_db(
+                    steam_id=steam_id, session=session
+                )
+                if check_earlier_error:
+                    await recording_steam_data_error(
+                        bot=bot,
+                        user_name=message.from_user.full_name,
+                        user_id=message.from_user.id,
+                        steam_id=steam_id,
+                        error=e,
+                    )
+                    if check_creating_steamid:
+                        await delete_steam_id(steam_id=str(steam_id), session=session)
+                    await storage.redis.delete(str(steam_id))
+                    await message.answer(
+                        f"Данные о текущей ошибке отправленны администраторам"
+                    )
+                else:
+                    await storage.redis.set(name=str(steam_id), value=1, ex=60000)
+                    if check_creating_steamid:
+                        await delete_steam_id(steam_id=str(steam_id), session=session)
+                    await message.answer(
+                        f"Произошла ошибка, попробуйте повторить через 5-10 минут"
+                    )
 
     await state.clear()
 
