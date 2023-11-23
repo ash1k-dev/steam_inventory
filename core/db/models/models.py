@@ -17,9 +17,10 @@ class User(Base):
     telegram_id = Column(Integer, nullable=False, unique=True)
 
     steam_ids = relationship("SteamId", back_populates="user")
+    tracking_items = relationship("ItemTrack", back_populates="user")
+    tracking_games = relationship("GameTrack", back_populates="user")
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}, name: {self.user_name}, telegram_id: {self.telegram_id}"
+
 
 
 # Steam
@@ -36,8 +37,7 @@ class SteamId(Base):
         "SteamInventory", back_populates="steamid", passive_deletes=True
     )
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}, steam_id: {self.steam_id}"
+
 
 
 class Game(Base):
@@ -49,8 +49,7 @@ class Game(Base):
         "GameInAccount", back_populates="game", passive_deletes=True
     )
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}, item_id: {self.game_name}, amount: {self.game_cost}"
+
 
 
 class GameInAccount(Base):
@@ -67,8 +66,7 @@ class GameInAccount(Base):
         uselist=False,
     )
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}, game_name: {self.game_name}, first_game_cost: {self.first_game_cost}"
+
 
 
 class SteamInventory(Base):
@@ -81,14 +79,7 @@ class SteamInventory(Base):
     items_in = relationship(
         "SteamItemsInInventory", back_populates="steam_inventorys", passive_deletes=True
     )
-    # items_in = relationship(
-    #     "SteamItem",
-    #     secondary="steam_items_in_inventory",
-    #     back_populates="steam_inventory",
-    # )
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}, games_id: {self.games_id}, cost: {self.inventory_cost}"
 
 
 class SteamItemsInInventory(Base):
@@ -104,10 +95,7 @@ class SteamItemsInInventory(Base):
         uselist=False,
     )
 
-    def __repr__(self):
-        return (
-            f"{self.__class__.__name__}, item_id: {self.item_id}, amount: {self.amount}"
-        )
+
 
 
 class SteamItem(Base):
@@ -120,11 +108,20 @@ class SteamItem(Base):
         "SteamItemsInInventory", back_populates="steam_item", passive_deletes=True
     )
 
-    # steam_inventory = relationship(
-    #     #     "SteamInventory",
-    #     #     secondary="steam_items_in_inventory",
-    #     #     back_populates="items_in",
-    #     # )
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}, classid: {self.classid}, cost: {self.item_cost}"
+
+
+class ItemTrack(Base):
+    first_item_cost = Column(Integer, default=0, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    item_id = Column(BigInteger, ForeignKey("steamitems.classid", ondelete="CASCADE"))
+
+    user = relationship('User', back_populates='tracking_items')
+
+
+class GameTrack(Base):
+    first_game_cost = Column(Integer, default=0, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    game_id = Column(Integer, ForeignKey("games.game_id", ondelete="CASCADE"))
+
+    user = relationship('User', back_populates='tracking_games')
