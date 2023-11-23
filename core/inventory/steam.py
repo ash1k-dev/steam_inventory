@@ -3,7 +3,6 @@ from time import sleep
 
 import requests
 
-# import test_data
 
 from config import APIKEY
 
@@ -94,9 +93,9 @@ def get_classid_list(items: dict) -> dict:
     for classid in items["assets"]:
         id = int(classid["classid"])
         if id in classid_names:
-            classid_names[id] += 1
+            classid_names[id]["amount"] += 1
         else:
-            classid_names[id] = 1
+            classid_names[id] = {"amount": 1}
     return classid_names
 
 
@@ -168,9 +167,17 @@ def get_inventory_info_test_data(test_data):
         try:
             item_cost = get_item_cost(data["name"])
             items_list[item]["price"] = item_cost
+            classid_list[int(item)]["first_cost"] = item_cost
         except Exception:
             # item_cost = randrange(10, 100)
             items_list[item]["price"] = 0
+            classid_list[int(item)]["first_cost"] = 0
         sleep(randrange(4, 10))
 
     return items_list, classid_list
+
+
+# from core.inventory.test_data import inventory_json
+#
+# print(get_inventory_info_test_data(inventory_json))
+# print(get_classid_list(items=inventory_json))

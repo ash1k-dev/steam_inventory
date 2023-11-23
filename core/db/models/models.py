@@ -29,7 +29,9 @@ class SteamId(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
 
     user = relationship("User", back_populates="steam_ids")
-    games = relationship("Game", back_populates="steamid", passive_deletes=True)
+    games = relationship(
+        "GameInAccount", back_populates="steamid", passive_deletes=True
+    )
     steam_inventorys = relationship(
         "SteamInventory", back_populates="steamid", passive_deletes=True
     )
@@ -40,22 +42,40 @@ class SteamId(Base):
 
 class Game(Base):
     game_name = Column(String)
-    game_id = Column(Integer)
+    game_id = Column(Integer, nullable=False, unique=True)
     game_cost = Column(Integer)
-    time_in_game = Column(Integer)
-    steam_id = Column(Integer, ForeignKey("steamids.id", ondelete="CASCADE"))
 
-    steamid = relationship("SteamId", back_populates="games")
+    games_in = relationship(
+        "GameInAccount", back_populates="game", passive_deletes=True
+    )
 
     def __repr__(self):
         return f"{self.__class__.__name__}, item_id: {self.game_name}, amount: {self.game_cost}"
+
+
+class GameInAccount(Base):
+    game_name = Column(String)
+    first_game_cost = Column(Integer)
+    time_in_game = Column(Integer)
+    steam_id = Column(BigInteger, ForeignKey("steamids.id", ondelete="CASCADE"))
+    game_id = Column(Integer, ForeignKey("games.game_id", ondelete="CASCADE"))
+
+    steamid = relationship("SteamId", back_populates="games")
+    game = relationship(
+        "Game",
+        back_populates="games_in",
+        uselist=False,
+    )
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}, game_name: {self.game_name}, first_game_cost: {self.first_game_cost}"
 
 
 class SteamInventory(Base):
     games_id = Column(Integer, nullable=False)
     first_inventory_cost = Column(Integer, default=0, nullable=False)
     inventory_cost = Column(Integer, default=0, nullable=False)
-    steam_id = Column(Integer, ForeignKey("steamids.id", ondelete="CASCADE"))
+    steam_id = Column(BigInteger, ForeignKey("steamids.id", ondelete="CASCADE"))
 
     steamid = relationship("SteamId", back_populates="steam_inventorys")
     items_in = relationship(
@@ -73,10 +93,9 @@ class SteamInventory(Base):
 
 class SteamItemsInInventory(Base):
     amount = Column(Integer)
+    first_item_cost = Column(Integer, default=0, nullable=False)
     inventory_id = Column(Integer, ForeignKey("steaminventorys.id", ondelete="CASCADE"))
-    item_id = Column(
-        BigInteger, ForeignKey("steamitems.classid", ondelete="CASCADE"), unique=True
-    )
+    item_id = Column(BigInteger, ForeignKey("steamitems.classid", ondelete="CASCADE"))
 
     steam_inventorys = relationship("SteamInventory", back_populates="items_in")
     steam_item = relationship(
@@ -95,7 +114,6 @@ class SteamItem(Base):
     name = Column(String, nullable=False)
     app_id = Column(Integer, nullable=False)
     classid = Column(BigInteger, nullable=False, unique=True)
-    first_item_cost = Column(Integer, default=0, nullable=False)
     item_cost = Column(Integer, nullable=False)
 
     items_in = relationship(
