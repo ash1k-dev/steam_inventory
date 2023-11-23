@@ -9,6 +9,7 @@ from urllib.parse import quote
 
 from core.db.methods.request import (
     get_amount_and_items_info_from_db,
+    get_items_info_from_db,
 )
 
 
@@ -34,28 +35,24 @@ async def get_items(
 ):
     steam_id = callback_data.steam_id
     steam_name = callback_data.steam_name
+    general_items_info = await get_items_info_from_db(
+        steam_id=steam_id, session=session
+    )
+    total_cost, first_total_cost, total_amount, max_cost, min_cost = general_items_info[
+        0
+    ]
+    difference_total_cost = total_cost - first_total_cost
+    items_dict = []
     items_info = await get_amount_and_items_info_from_db(
         steam_id=steam_id, session=session
     )
-    total_cost = 0
-    first_total_cost = 0
-    amount = 0
-    max_cost = 0
-    min_cost = 10000000
-    items_dict = []
-    for item in items_info:
-        name = item.steam_item.name
-        cost = item.amount * item.steam_item.item_cost
-        first_cost = item.amount * item.steam_item.first_item_cost
-        total_cost += cost
-        first_total_cost += first_cost
-        store = f"https://steamcommunity.com/market/listings/730/{quote(item.steam_item.name)}"
-        amount += 1
-        if item.steam_item.item_cost > max_cost:
-            max_cost = item.steam_item.item_cost
-        if 0 < item.steam_item.item_cost < min_cost:
-            min_cost = item.steam_item.item_cost
-        diff = item.steam_item.item_cost - item.steam_item.first_item_cost
+    for name, item_cost, first_cost, amount in items_info:
+        cost = amount * item_cost
+        first_cost = amount * first_cost
+        # total_cost += cost
+        # first_total_cost += first_cost
+        store = f"https://steamcommunity.com/market/listings/730/{quote(name)}"
+        diff = item_cost - first_cost
         if first_cost != 0:
             items_dict.append(
                 {
@@ -64,17 +61,10 @@ async def get_items(
                     "first_cost": first_cost,
                     "diff": diff,
                     "diff_percent": int(diff / first_cost * 100),
-                    "amount": item.amount,
+                    "amount": amount,
                     "store": store,
                 }
             )
-    difference_total_cost = total_cost - first_total_cost
-    # data = {"test": 1}
-    # json_images = json.dumps(data)
-    # await storage.redis.set("images10", json_images, ex=10)
-    # unpacked_images = await storage.redis.get("images")
-    # unpacked_images = json.loads(unpacked_images)
-    # print(unpacked_images)
     if callback_data.action == "all":
         grouped_items_list = get_grouped_items_list(
             items_dict=items_dict, filter="cost"
@@ -116,7 +106,7 @@ async def get_items(
     elif callback_data.action == "info" or callback_data.action == "back":
         await callback.message.answer(
             text=f"{markdown.hbold('Аккаунт ' + steam_name)}\n"
-            f"Количество предметов: {amount}\n"
+            f"Количество предметов: {total_amount}\n"
             f"Общая стоимость предметов: {total_cost}руб.\n"
             f"Первоначальная стоимость предметов: {first_total_cost}руб.\n"
             f"Прирост стоимости: {difference_total_cost}руб.({int((difference_total_cost/first_total_cost)*100)}%)\n"

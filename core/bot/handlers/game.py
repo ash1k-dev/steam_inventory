@@ -28,8 +28,10 @@ async def get_games(
 ):
     if callback_data.action == "info" or callback_data.action == "back":
         steamid_id = int(callback_data.steam_id)
-        games_info = await get_games_info_from_db(steam_id=steamid_id, session=session)
-        number_of_games, total_cost, time_in_games = games_info[0]
+        general_games_info = await get_games_info_from_db(
+            steam_id=steamid_id, session=session
+        )
+        number_of_games, total_cost, time_in_games = general_games_info[0]
         await callback.message.answer(
             text=f"{markdown.hbold('Аккаунт ' + callback_data.steam_name)}\n"
             f"Количество: {number_of_games}\n"
@@ -42,34 +44,35 @@ async def get_games(
     else:
         if callback_data.action == "time":
             all_games = await get_top_games_from_db(
-                telegram_id=callback.from_user.id,
+                steam_id=callback_data.steam_id,
                 limit=callback_data.limit,
                 order=callback_data.order,
                 session=session,
             )
         elif callback_data.action == "cost":
             all_games = await get_top_games_from_db(
-                telegram_id=callback.from_user.id,
+                steam_id=callback_data.steam_id,
                 limit=callback_data.limit,
                 order=callback_data.order,
                 session=session,
             )
         elif callback_data.action == "all":
             all_games = await get_top_games_from_db(
-                telegram_id=callback.from_user.id,
+                steam_id=callback_data.steam_id,
                 limit=callback_data.limit,
                 order=callback_data.order,
                 session=session,
             )
         games_list = []
         grouped_games_list = []
-        for game in all_games:
+        for (game_id, game_name, first_game_cost, time_in_game, game_cost) in all_games:
             games_list.append(
-                f"{markdown.hbold(game.game_name)}\n"
-                f"Количество часов: {game.time_in_game}\n"
-                f"Стоимость: {game.game_cost}\n"
+                f"{markdown.hbold(game_name)}\n"
+                f"Количество часов: {time_in_game}\n"
+                f"Актуальная стоимость: {game_cost}\n"
+                f"Первоначальная стоимость: {first_game_cost}\n"
                 f"Ссылка на торговую площадку: "
-                f"{markdown.hlink('SteamLink', f'https://store.steampowered.com/app/{game.game_id}')}\n\n"
+                f"{markdown.hlink('SteamLink', f'https://store.steampowered.com/app/{game_id}')}\n\n"
             )
         for i in range(0, len(games_list), 5):
             grouped_games_list.append("".join(games_list[i : i + 5]))
