@@ -9,6 +9,8 @@ from core.db.models.models import (
     SteamInventory,
     SteamItem,
     SteamItemsInInventory,
+    # ItemTrack,
+    GameTrack,
 )
 
 
@@ -157,3 +159,46 @@ async def get_games_list_from_db(
     statement = select(Game.game_id)
     result = await session.execute(statement)
     return result.scalars().all()
+
+
+# async def get_all_tracking_items_from_db(telegram_id: int, session: AsyncSession):
+#     """Getting all steam ids from the database"""
+#     user = await get_user_from_db(telegram_id=telegram_id, session=session)
+#     statement = select(ItemTrack).where(ItemTrack.user_id == user.id)
+#     result = await session.execute(statement)
+#     return result.scalars().all()
+
+
+async def get_all_tracking_games_from_db(telegram_id: int, session: AsyncSession):
+    """Getting all steam ids from the database"""
+    # user = await get_user_from_db(telegram_id=telegram_id, session=session)
+    # statement = select(GameTrack).where(GameTrack.user_id == user.id)
+    # result = await session.execute(statement)
+    # return result.scalars().all()
+    user = await get_user_from_db(telegram_id=telegram_id, session=session)
+    statement = (
+        select(
+            GameTrack.user_id,
+            GameTrack.name,
+            GameTrack.game_id,
+            GameTrack.first_game_cost,
+            Game.game_cost,
+        )
+        .join(Game, Game.game_id == GameTrack.game_id)
+        .where(GameTrack.user_id == user.id)
+    )
+    result = await session.execute(statement)
+    return result.all()
+
+
+async def get_tracking_game_from_db(game_id: int, session: AsyncSession):
+    """Getting all steam ids from the database"""
+    statement = select(GameTrack).where(GameTrack.game_id == game_id)
+    result = await session.execute(statement)
+    return result.scalars().one_or_none()
+
+
+async def get_game_from_db(game_id: int, session: AsyncSession):
+    statement = select(Game).where(Game.game_id == game_id)
+    result = await session.execute(statement)
+    return result.scalars().one_or_none()

@@ -17,10 +17,8 @@ class User(Base):
     telegram_id = Column(Integer, nullable=False, unique=True)
 
     steam_ids = relationship("SteamId", back_populates="user")
-    tracking_items = relationship("ItemTrack", back_populates="user")
+    # tracking_items = relationship("ItemTrack", back_populates="user")
     tracking_games = relationship("GameTrack", back_populates="user")
-
-
 
 
 # Steam
@@ -38,8 +36,6 @@ class SteamId(Base):
     )
 
 
-
-
 class Game(Base):
     game_name = Column(String)
     game_id = Column(Integer, nullable=False, unique=True)
@@ -48,8 +44,6 @@ class Game(Base):
     games_in = relationship(
         "GameInAccount", back_populates="game", passive_deletes=True
     )
-
-
 
 
 class GameInAccount(Base):
@@ -67,8 +61,6 @@ class GameInAccount(Base):
     )
 
 
-
-
 class SteamInventory(Base):
     games_id = Column(Integer, nullable=False)
     first_inventory_cost = Column(Integer, default=0, nullable=False)
@@ -79,7 +71,6 @@ class SteamInventory(Base):
     items_in = relationship(
         "SteamItemsInInventory", back_populates="steam_inventorys", passive_deletes=True
     )
-
 
 
 class SteamItemsInInventory(Base):
@@ -96,8 +87,6 @@ class SteamItemsInInventory(Base):
     )
 
 
-
-
 class SteamItem(Base):
     name = Column(String, nullable=False)
     app_id = Column(Integer, nullable=False)
@@ -109,19 +98,19 @@ class SteamItem(Base):
     )
 
 
-
-
-class ItemTrack(Base):
-    first_item_cost = Column(Integer, default=0, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
-    item_id = Column(BigInteger, ForeignKey("steamitems.classid", ondelete="CASCADE"))
-
-    user = relationship('User', back_populates='tracking_items')
+# class ItemTrack(Base):
+#     name = Column(String, nullable=False)
+#     first_item_cost = Column(Integer, default=0, nullable=False)
+#     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+#     # item_id = Column(BigInteger, ForeignKey("steamitems.classid", ondelete="CASCADE"))
+#
+#     user = relationship("User", back_populates="tracking_items")
 
 
 class GameTrack(Base):
+    name = Column(String, nullable=False)
     first_game_cost = Column(Integer, default=0, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     game_id = Column(Integer, ForeignKey("games.game_id", ondelete="CASCADE"))
 
-    user = relationship('User', back_populates='tracking_games')
+    user = relationship("User", back_populates="tracking_games")

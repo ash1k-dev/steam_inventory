@@ -8,6 +8,8 @@ from core.db.models.models import (
     SteamInventory,
     SteamItemsInInventory,
     SteamItem,
+    # ItemTrack,
+    GameTrack,
 )
 
 from core.db.methods.request import (
@@ -16,8 +18,15 @@ from core.db.methods.request import (
     get_games_list_from_db,
     get_steamid_from_db,
     get_inventorys_id_from_db,
+    get_game_from_db,
 )
-from core.inventory.steam import get_all_games_info, get_inventory_info_test_data
+from core.inventory.steam import (
+    get_all_games_info,
+    get_inventory_info_test_data,
+    # get_item_cost,
+    get_game_cost,
+    get_game_name,
+)
 from core.inventory.test_data import inventory_json
 
 
@@ -60,7 +69,6 @@ async def create_all_steam_items(items_dict: dict, session: AsyncSession) -> Non
                 name=item_data["name"],
                 app_id=item_data["appid"],
                 classid=int(item_id),
-                # first_item_cost=item_data["price"],
                 item_cost=item_data["price"],
             )
             items.append(steam_item)
@@ -109,36 +117,6 @@ async def create_all_games(
     await session.commit()
 
 
-# async def create_all_games(
-#     all_games_info: dict, steam_id: int, session: AsyncSession
-# ) -> None:
-#     all_games = []
-#     for game_id, game_data in all_games_info.items():
-#         game = Game(
-#             game_id=game_id,
-#             game_name=game_data["name"],
-#             game_cost=game_data["price"],
-#             time_in_game=game_data["time"],
-#             steam_id=steam_id,
-#         )
-#         all_games.append(game)
-#     session.add_all(all_games)
-#     await session.commit()
-
-
-# async def create_games_in_account(
-#     classid_dict: dict, inventory_id: int, session: AsyncSession
-# ):
-#     classids = []
-#     for classid, amount in classid_dict.items():
-#         steam_items_in_inventory = SteamItemsInInventory(
-#             amount=amount, inventory_id=inventory_id, item_id=classid
-#         )
-#         classids.append(steam_items_in_inventory)
-#     session.add_all(classids)
-#     await session.commit()
-
-
 async def add_initial_data(message, session, steam_id, steam_name):
     await create_steamid(
         telegram_id=message.from_user.id,
@@ -166,3 +144,30 @@ async def add_initial_data(message, session, steam_id, steam_name):
     await create_steam_items_in_inventory(
         classid_dict, inventory_id=inventorys_id.id, session=session
     )
+
+
+async def create_game(
+    game_id: int, game_name, game_cost, session: AsyncSession
+) -> None:
+    game = Game(game_name=game_name, game_id=game_id, game_cost=game_cost)
+    session.add(game)
+    await session.commit()
+
+
+async def create_game_track(
+    game_id: int, telegram_id: int, session: AsyncSession
+) -> None:
+    """Creating user"""
+    user = await get_user_from_db(telegram_id=telegram_id, session=session)
+    first_item_cost = get_game_cost(game_id=game_id)
+    name = get_game_name(game_id=int(game_id))
+    check_game = await get_game_from_db(game_id=game_id, session=session)
+    if check_game == None:
+        await create_game(
+            game_name=name, game_id=game_id, game_cost=first_item_cost, session=session
+        )
+    game_track = GameTrack(
+        name=name, first_game_cost=first_item_cost, user_id=user.id, game_id=game_id
+    )
+    session.add(game_track)
+    await session.commit()

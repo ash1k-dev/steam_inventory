@@ -27,6 +27,16 @@ class SteamidCallbackFactory(CallbackData, prefix="steamid"):
     steam_id: Optional[int] = None
 
 
+class GamesTrackCallbackFactory(CallbackData, prefix="games_track"):
+    action: Optional[str] = None
+    name: Optional[str] = None
+    tracking_game_id: Optional[int] = None
+    user_id: Optional[int] = None
+    first_game_cost: Optional[int] = None
+    game_cost: Optional[int] = None
+    game_id: Optional[int] = None
+
+
 def get_steams_menu(steam_id_list: list) -> InlineKeyboardMarkup:
     """Keyboard to steams menu"""
     keyboard_builder = InlineKeyboardBuilder()
@@ -306,6 +316,62 @@ def get_items_back_menu(steam_id, steam_name) -> InlineKeyboardMarkup:
             action="info",
             steam_name=steam_name,
             steam_id=steam_id,
+        ),
+    )
+    keyboard_builder.adjust(1)
+    return keyboard_builder.as_markup()
+
+
+def get_tracking_games_menu(tracking_games_list: list) -> InlineKeyboardMarkup:
+    """Keyboard to steams menu"""
+    keyboard_builder = InlineKeyboardBuilder()
+    for user_id, name, game_id, first_game_cost, game_cost in tracking_games_list:
+        keyboard_builder.button(
+            text=name,
+            callback_data=GamesTrackCallbackFactory(
+                action="tracking_game",
+                tracking_game_id=game_id,
+                name=name,
+                first_game_cost=first_game_cost,
+                game_cost=game_cost,
+                user_id=user_id,
+                game_id=game_id,
+            ),
+        )
+    keyboard_builder.button(
+        text="Добавить 🪄",
+        callback_data=GamesTrackCallbackFactory(action="add_tracking_game"),
+    )
+    keyboard_builder.adjust(1)
+    return keyboard_builder.as_markup()
+
+
+def get_confirm_tracking_games_menu(game_id) -> InlineKeyboardMarkup:
+    """Keyboard to steams menu"""
+    keyboard_builder = InlineKeyboardBuilder()
+    keyboard_builder.button(
+        text="Да",
+        callback_data=GamesTrackCallbackFactory(
+            action="add_tracking_game_confirm", game_id=game_id
+        ),
+    )
+    keyboard_builder.button(
+        text="Нет",
+        callback_data=GamesTrackCallbackFactory(action="add_tracking_game_not_confirm"),
+    )
+    keyboard_builder.adjust(1)
+    return keyboard_builder.as_markup()
+
+
+def get_control_menu_tracking_game(game_id: int, game_name) -> InlineKeyboardMarkup:
+    """Keyboard to delete a steam id"""
+    keyboard_builder = InlineKeyboardBuilder()
+    keyboard_builder.button(
+        text="Удалить",
+        callback_data=GamesTrackCallbackFactory(
+            action="delete",
+            name=game_name,
+            game_id=game_id,
         ),
     )
     keyboard_builder.adjust(1)
