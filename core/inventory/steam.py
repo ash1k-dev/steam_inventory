@@ -24,13 +24,27 @@ def get_time_in_games(steam_id):
 
 def get_game_cost(game_id):
     """Getting game cost"""
+    try:
+        url = "http://store.steampowered.com/api/appdetails"
+        request = requests.get(url, params={"appids": game_id, "cc": "ru"})
+        game_cost = request.json()[str(game_id)]["data"]["price_overview"][
+            "final_formatted"
+        ]
+        game_cost = int(game_cost.split(",")[0])
+    except Exception:
+        game_cost = 0
+    return game_cost
+
+
+# print(get_game_cost(261550))
+
+
+def get_game_name(game_id):
+    """Getting game cost"""
     url = "http://store.steampowered.com/api/appdetails"
     request = requests.get(url, params={"appids": game_id, "cc": "ru"})
-    game_cost = request.json()[str(game_id)]["data"]["price_overview"][
-        "final_formatted"
-    ]
-    game_cost = int(game_cost.split()[0])
-    return game_cost
+    game_name = request.json()[str(game_id)]["data"]["name"]
+    return game_name
 
 
 def get_steam_id(steam_id: str) -> int:
@@ -126,16 +140,23 @@ def get_item_cost(name: str, game_id: int = 730, currency: int = 5) -> float:
     return cost
 
 
+def get_item_market_hash_name(item_id, app_id=730):
+    url = f"https://api.steampowered.com/ISteamEconomy/GetAssetClassInfo/v1/"
+    result = requests.get(
+        url,
+        params={"key": APIKEY, "appid": app_id, "class_count": 1, "classid0": item_id},
+    )
+    market_hash_name = result.json()["result"][str(item_id)]["market_hash_name"]
+    return market_hash_name
+
+
 def get_all_games_info(steam_id: int):
     final_list = {}
     games_id_list = get_games_id(steam_id)
     time_into_games = get_time_in_games(steam_id)
     for game_id, game_name in games_id_list.items():
         time = time_into_games[game_id]
-        try:
-            price = get_game_cost(game_id)
-        except:
-            price = 0
+        price = get_game_cost(game_id)
         final_list[game_id] = {"name": game_name, "time": time, "price": price}
 
     return final_list
@@ -175,9 +196,3 @@ def get_inventory_info_test_data(test_data):
         sleep(randrange(4, 10))
 
     return items_list, classid_list
-
-
-# from core.inventory.test_data import inventory_json
-#
-# print(get_inventory_info_test_data(inventory_json))
-# print(get_classid_list(items=inventory_json))
