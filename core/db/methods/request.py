@@ -11,6 +11,7 @@ from core.db.models.models import (
     SteamItemsInInventory,
     # ItemTrack,
     GameTrack,
+    ItemTrack,
 )
 
 
@@ -19,9 +20,6 @@ async def get_user_from_db(telegram_id: int, session: AsyncSession):
     statement = select(User).where(User.telegram_id == telegram_id)
     result = await session.execute(statement)
     return result.scalars().one_or_none()
-
-
-"Нужно добавить провекру по user id, steam_id может дублироваться"
 
 
 async def get_steamid_from_db(steam_id: int, session: AsyncSession):
@@ -161,20 +159,26 @@ async def get_games_list_from_db(
     return result.scalars().all()
 
 
-# async def get_all_tracking_items_from_db(telegram_id: int, session: AsyncSession):
-#     """Getting all steam ids from the database"""
-#     user = await get_user_from_db(telegram_id=telegram_id, session=session)
-#     statement = select(ItemTrack).where(ItemTrack.user_id == user.id)
-#     result = await session.execute(statement)
-#     return result.scalars().all()
+async def get_all_tracking_items_from_db(telegram_id: int, session: AsyncSession):
+    """Getting all tracking items from the database"""
+    user = await get_user_from_db(telegram_id=telegram_id, session=session)
+    statement = (
+        select(
+            ItemTrack.name,
+            ItemTrack.first_item_cost,
+            ItemTrack.user_id,
+            ItemTrack.item_id,
+            SteamItem.item_cost,
+        )
+        .join(SteamItem, ItemTrack.item_id == SteamItem.classid)
+        .where(ItemTrack.user_id == user.id)
+    )
+    result = await session.execute(statement)
+    return result.all()
 
 
 async def get_all_tracking_games_from_db(telegram_id: int, session: AsyncSession):
-    """Getting all steam ids from the database"""
-    # user = await get_user_from_db(telegram_id=telegram_id, session=session)
-    # statement = select(GameTrack).where(GameTrack.user_id == user.id)
-    # result = await session.execute(statement)
-    # return result.scalars().all()
+    """Getting all tracking games from the database"""
     user = await get_user_from_db(telegram_id=telegram_id, session=session)
     statement = (
         select(
@@ -200,5 +204,18 @@ async def get_tracking_game_from_db(game_id: int, session: AsyncSession):
 
 async def get_game_from_db(game_id: int, session: AsyncSession):
     statement = select(Game).where(Game.game_id == game_id)
+    result = await session.execute(statement)
+    return result.scalars().one_or_none()
+
+
+async def get_tracking_item_from_db(item_id: int, session: AsyncSession):
+    """Getting all steam ids from the database"""
+    statement = select(ItemTrack).where(ItemTrack.item_id == item_id)
+    result = await session.execute(statement)
+    return result.scalars().one_or_none()
+
+
+async def get_item_from_db(item_id: int, session: AsyncSession):
+    statement = select(SteamItem).where(SteamItem.classid == item_id)
     result = await session.execute(statement)
     return result.scalars().one_or_none()

@@ -17,7 +17,7 @@ class User(Base):
     telegram_id = Column(Integer, nullable=False, unique=True)
 
     steam_ids = relationship("SteamId", back_populates="user")
-    # tracking_items = relationship("ItemTrack", back_populates="user")
+    tracking_items = relationship("ItemTrack", back_populates="user")
     tracking_games = relationship("GameTrack", back_populates="user")
 
 
@@ -89,7 +89,7 @@ class SteamItemsInInventory(Base):
 
 class SteamItem(Base):
     name = Column(String, nullable=False)
-    app_id = Column(Integer, nullable=False)
+    app_id = Column(Integer, default=730, nullable=False)
     classid = Column(BigInteger, nullable=False, unique=True)
     item_cost = Column(Integer, nullable=False)
 
@@ -98,13 +98,13 @@ class SteamItem(Base):
     )
 
 
-# class ItemTrack(Base):
-#     name = Column(String, nullable=False)
-#     first_item_cost = Column(Integer, default=0, nullable=False)
-#     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
-#     # item_id = Column(BigInteger, ForeignKey("steamitems.classid", ondelete="CASCADE"))
-#
-#     user = relationship("User", back_populates="tracking_items")
+class ItemTrack(Base):
+    name = Column(String, nullable=False)
+    first_item_cost = Column(Integer, default=0, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    item_id = Column(BigInteger, ForeignKey("steamitems.classid", ondelete="CASCADE"))
+
+    user = relationship("User", back_populates="tracking_items")
 
 
 class GameTrack(Base):

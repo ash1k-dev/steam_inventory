@@ -10,6 +10,7 @@ from core.db.models.models import (
     SteamItem,
     # ItemTrack,
     GameTrack,
+    ItemTrack,
 )
 
 from core.db.methods.request import (
@@ -19,6 +20,7 @@ from core.db.methods.request import (
     get_steamid_from_db,
     get_inventorys_id_from_db,
     get_game_from_db,
+    get_item_from_db,
 )
 from core.inventory.steam import (
     get_all_games_info,
@@ -26,6 +28,8 @@ from core.inventory.steam import (
     # get_item_cost,
     get_game_cost,
     get_game_name,
+    get_item_cost,
+    get_item_market_hash_name,
 )
 from core.inventory.test_data import inventory_json
 
@@ -159,15 +163,48 @@ async def create_game_track(
 ) -> None:
     """Creating user"""
     user = await get_user_from_db(telegram_id=telegram_id, session=session)
-    first_item_cost = get_game_cost(game_id=game_id)
+    first_game_cost = get_game_cost(game_id=game_id)
     name = get_game_name(game_id=int(game_id))
     check_game = await get_game_from_db(game_id=game_id, session=session)
     if check_game == None:
         await create_game(
-            game_name=name, game_id=game_id, game_cost=first_item_cost, session=session
+            game_name=name, game_id=game_id, game_cost=first_game_cost, session=session
         )
     game_track = GameTrack(
-        name=name, first_game_cost=first_item_cost, user_id=user.id, game_id=game_id
+        name=name, first_game_cost=first_game_cost, user_id=user.id, game_id=game_id
+    )
+    session.add(game_track)
+    await session.commit()
+
+
+async def create_item(
+    name: str, item_id: int, item_cost, session: AsyncSession
+) -> None:
+    game = SteamItem(name=name, classid=item_id, item_cost=item_cost)
+    session.add(game)
+    await session.commit()
+
+
+async def create_item_track(
+    item_id: int, telegram_id: int, session: AsyncSession
+) -> None:
+    """Creating user"""
+    user = await get_user_from_db(telegram_id=telegram_id, session=session)
+    market_hash_name = get_item_market_hash_name(item_id=item_id)
+    first_item_cost = get_item_cost(name=market_hash_name)
+    check_item = await get_item_from_db(item_id=item_id, session=session)
+    if check_item == None:
+        await create_item(
+            name=market_hash_name,
+            item_id=item_id,
+            item_cost=first_item_cost,
+            session=session,
+        )
+    game_track = ItemTrack(
+        name=market_hash_name,
+        first_item_cost=first_item_cost,
+        user_id=user.id,
+        item_id=item_id,
     )
     session.add(game_track)
     await session.commit()
