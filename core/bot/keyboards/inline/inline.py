@@ -1,50 +1,12 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardMarkup
-from typing import Optional
-from aiogram.filters.callback_data import CallbackData
 
-
-class ItemsCallbackFactory(CallbackData, prefix="items"):
-    action: Optional[str] = None
-    steam_name: Optional[str] = None
-    steam_id: Optional[int] = None
-    page: Optional[int] = None
-    pages_amount: Optional[int] = None
-
-
-class GamesCallbackFactory(CallbackData, prefix="games"):
-    action: Optional[str] = None
-    steam_name: Optional[str] = None
-    steam_id: Optional[int] = None
-    limit: Optional[int] = None
-    order: Optional[str] = None
-    page: Optional[int] = None
-    pages_amount: Optional[int] = None
-
-
-class SteamidCallbackFactory(CallbackData, prefix="steamid"):
-    action: Optional[str] = None
-    steam_name: Optional[str] = None
-    steam_id: Optional[int] = None
-
-
-class GamesTrackCallbackFactory(CallbackData, prefix="games_track"):
-    action: Optional[str] = None
-    name: Optional[str] = None
-    tracking_game_id: Optional[int] = None
-    user_id: Optional[int] = None
-    first_game_cost: Optional[int] = None
-    game_cost: Optional[int] = None
-    game_id: Optional[int] = None
-
-
-class ItemsTrackCallbackFactory(CallbackData, prefix="items_track"):
-    action: Optional[str] = None
-    name: Optional[str] = None
-    tracking_item_id: Optional[int] = None
-    user_id: Optional[int] = None
-    first_item_cost: Optional[int] = None
-    item_cost: Optional[int] = None
-    item_id: Optional[int] = None
+from core.bot.keyboards.inline.callback_factory import (
+    SteamidCallbackFactory,
+    ItemsCallbackFactory,
+    GamesCallbackFactory,
+    GamesTrackCallbackFactory,
+    ItemsTrackCallbackFactory,
+)
 
 
 def get_steams_menu(steam_id_list: list) -> InlineKeyboardMarkup:
@@ -340,11 +302,11 @@ def get_tracking_games_menu(tracking_games_list: list) -> InlineKeyboardMarkup:
             text=name,
             callback_data=GamesTrackCallbackFactory(
                 action="tracking_game",
-                tracking_game_id=game_id,
-                name=name,
-                first_game_cost=first_game_cost,
-                game_cost=game_cost,
-                user_id=user_id,
+                # tracking_game_id=game_id,
+                # name=name,
+                # first_game_cost=first_game_cost,
+                # game_cost=game_cost,
+                # user_id=user_id,
                 game_id=game_id,
             ),
         )
@@ -412,8 +374,8 @@ def get_control_menu_tracking_items(item_id: int, item_name) -> InlineKeyboardMa
         text="Удалить",
         callback_data=ItemsTrackCallbackFactory(
             action="delete",
-            name=item_name,
-            game_id=item_id,
+            # name=item_name,
+            item_id=item_id,
         ),
     )
     keyboard_builder.adjust(1)
@@ -428,11 +390,11 @@ def get_tracking_items_menu(tracking_items_list: list) -> InlineKeyboardMarkup:
             text=name,
             callback_data=ItemsTrackCallbackFactory(
                 action="tracking_item",
-                name=name,
-                first_item_cost=first_item_cost,
-                user_id=user_id,
+                # name=name,
+                # first_item_cost=first_item_cost,
+                # user_id=user_id,
                 item_id=item_id,
-                item_cost=item_cost,
+                # item_cost=item_cost,
             ),
         )
     keyboard_builder.button(
