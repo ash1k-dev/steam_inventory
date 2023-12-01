@@ -13,11 +13,12 @@ from core.db.methods.request import (
 )
 
 
-from core.bot.keyboards.inline import ItemsCallbackFactory, get_items_back_menu
+from core.bot.keyboards.inline.callback_factory import ItemsCallbackFactory
 
-from core.bot.keyboards.inline import (
+from core.bot.keyboards.inline.inline import (
     get_items_menu,
     get_pagination,
+    get_items_back_menu,
 )
 from aiogram.fsm.storage.redis import RedisStorage
 import json
@@ -47,17 +48,13 @@ async def get_items(
         steam_id=steam_id, session=session
     )
     for name, item_cost, first_cost, amount in items_info:
-        cost = amount * item_cost
-        first_cost = amount * first_cost
-        # total_cost += cost
-        # first_total_cost += first_cost
         store = f"https://steamcommunity.com/market/listings/730/{quote(name)}"
         diff = item_cost - first_cost
         if first_cost != 0:
             items_dict.append(
                 {
                     "name": name,
-                    "cost": cost,
+                    "cost": item_cost,
                     "first_cost": first_cost,
                     "diff": diff,
                     "diff_percent": int(diff / first_cost * 100),

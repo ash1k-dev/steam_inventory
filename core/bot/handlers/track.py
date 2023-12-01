@@ -14,22 +14,27 @@ from core.db.methods.request import (
 
 from urllib.parse import quote
 
+from aiogram.fsm.storage.redis import RedisStorage
 
-from core.db.methods.delete import delete_tracking_game
+
+from core.db.methods.delete import delete_tracking_game, delete_tracking_item
 
 from core.db.methods.create import create_game_track, create_item_track
 
 from core.inventory.steam import get_game_name, get_item_market_hash_name
 
-from core.bot.keyboards.inline import (
-    GamesTrackCallbackFactory,
+from core.bot.keyboards.inline.inline import (
     get_tracking_games_menu,
     get_control_menu_tracking_game,
     get_confirm_tracking_game_menu,
     get_tracking_items_menu,
-    ItemsTrackCallbackFactory,
     get_control_menu_tracking_items,
     get_confirm_tracking_item_menu,
+)
+
+from core.bot.keyboards.inline.callback_factory import (
+    GamesTrackCallbackFactory,
+    ItemsTrackCallbackFactory,
 )
 
 router = Router()
@@ -48,13 +53,23 @@ class AddItemTrack(StatesGroup):
 
 
 @router.message(F.text == "Предметы")
-async def get_steam_ids(message: Message, session: AsyncSession):
+async def get_steam_ids(message: Message, session: AsyncSession, storage: RedisStorage):
     telegram_id = message.from_user.id
     tracking_items_list = await get_all_tracking_items_from_db(
         telegram_id=telegram_id, session=session
     )
+    # for name, first_item_cost, user_id, item_id, item_cost in tracking_items_list:
+    #     await storage.redis.hmset(
+    #         f"item:{item_id}",
+    #         mapping={
+    #             "name": name,
+    #             "cost": item_cost,
+    #             "first_cost": first_item_cost,
+    #             "user_id": user_id,
+    #         },
+    #     )
     await message.answer(
-        f"Отслеживаемые предметы:{tracking_items_list[0]}",
+        f"Отслеживаемые предметы:",
         reply_markup=get_tracking_items_menu(tracking_items_list=tracking_items_list),
     )
 
@@ -79,6 +94,7 @@ async def get_tracking_games(
     state: FSMContext,
 ):
     if callback_data.action == "tracking_game":
+
         await callback.message.answer(
             text=f"{markdown.hbold(callback_data.name)}\n"
             f"Первоначальная стоимость: {callback_data.first_game_cost}\n"
@@ -105,6 +121,7 @@ async def get_tracking_games(
             telegram_id=callback.from_user.id,
             session=session,
         )
+        await state.clear()
         await callback.message.answer(
             text="Игра успешно добавлена",
         )
@@ -148,19 +165,25 @@ async def get_tracking_item(
     callback_data: ItemsTrackCallbackFactory,
     session: AsyncSession,
     state: FSMContext,
+    storage: RedisStorage,
 ):
     if callback_data.action == "tracking_item":
+        tracking_data = await storage.redis.hgetall(f"item:{callback_data.item_id}")
+        tracking_data = {
+            key.decode("utf-8"): value.decode("utf-8")
+            for key, value in tracking_data.items()
+        }
         await callback.message.answer(
-            text=f"{markdown.hbold(callback_data.name)}\n"
-            f"Первоначальная стоимость: {callback_data.first_item_cost}\n"
-            f"Актуальная стоимость: {callback_data.item_cost}",
+            text=f"{markdown.hbold(tracking_data['name'])}\n"
+            f"Первоначальная стоимость: {tracking_data['first_cost']}\n"
+            f"Актуальная стоимость: {tracking_data['cost']}",
             reply_markup=get_control_menu_tracking_items(
-                item_id=callback_data.item_id, item_name=callback_data.name
+                item_id=callback_data.item_id, item_name=tracking_data["name"]
             ),
         )
         await callback.answer()
     elif callback_data.action == "delete":
-        await delete_tracking_game(game_id=callback_data.item_id, session=session)
+        await delete_tracking_item(item_id=callback_data.item_id, session=session)
         await callback.message.delete()
         await callback.message.answer(
             text=f"Предмет {callback_data.name} успешно удален"
@@ -178,6 +201,7 @@ async def get_tracking_item(
             telegram_id=callback.from_user.id,
             session=session,
         )
+        await state.clear()
         await callback.message.answer(
             text="Предмет успешно добавлен",
         )

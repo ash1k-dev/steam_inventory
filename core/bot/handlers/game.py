@@ -10,13 +10,13 @@ from core.db.methods.request import (
     get_games_info_from_db,
 )
 
-from core.bot.keyboards.inline import (
+from core.bot.keyboards.inline.inline import (
     get_games_menu,
     get_games_back_menu,
     get_pagination,
 )
 
-from core.bot.keyboards.inline import GamesCallbackFactory
+from core.bot.keyboards.inline.callback_factory import GamesCallbackFactory
 
 
 router = Router()

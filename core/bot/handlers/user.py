@@ -1,5 +1,4 @@
 from aiogram import F, Router, Bot
-from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
@@ -18,9 +17,9 @@ from core.db.methods.request import (
 
 from core.db.methods.delete import delete_steam_id
 
-from core.bot.keyboards.reply import (
+from core.bot.keyboards.reply.reply import (
     get_main_menu,
-    get_check_cost_menu,
+    get_track_menu,
 )
 
 from core.inventory.steam import (
@@ -28,12 +27,13 @@ from core.inventory.steam import (
     get_steam_id,
 )
 
-from core.bot.keyboards.inline import (
-    SteamidCallbackFactory,
+from core.bot.keyboards.inline.inline import (
     get_steams_menu,
     get_control_menu,
     get_steam_id_menu,
 )
+
+from core.bot.keyboards.inline.callback_factory import SteamidCallbackFactory
 
 router = Router()
 from aiogram.fsm.storage.redis import RedisStorage
@@ -45,7 +45,7 @@ class AddSteamId(StatesGroup):
     added_steam_id = State()
 
 
-@router.message(Command(commands="start"))
+@router.message(F.text.in_({"/start", "Назад"}))
 async def get_start(message: Message, session: AsyncSession):
     """Welcome and registration a new user"""
     telegram_id = message.from_user.id
@@ -77,7 +77,7 @@ async def get_steam_ids(message: Message, session: AsyncSession):
 async def get_cost(message: Message, session: AsyncSession):
     telegram_id = message.from_user.id
     # await update_all_items(session=session)
-    await message.answer(f"Отслеживание стоимости", reply_markup=get_check_cost_menu())
+    await message.answer(f"Отслеживание стоимости", reply_markup=get_track_menu())
 
 
 @router.message(AddSteamId.added_steam_id, flags={"long_operation": "upload_document"})
