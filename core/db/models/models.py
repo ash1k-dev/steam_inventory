@@ -13,33 +13,29 @@ class Base(DeclarativeBase):
 
 
 class User(Base):
-    user_name = Column(String, nullable=True)
+    name = Column(String, nullable=True)
     telegram_id = Column(Integer, nullable=False, unique=True)
 
-    steam_ids = relationship("SteamId", back_populates="user")
+    steams = relationship("Steam", back_populates="user")
     tracking_items = relationship("ItemTrack", back_populates="user")
     tracking_games = relationship("GameTrack", back_populates="user")
 
 
 # Steam
-class SteamId(Base):
-    steam_id = Column(BigInteger)
-    steam_name = Column(String)
-    user_id = Column(Integer, ForeignKey("users.id"))
+class Steam(Base):
+    steam_id = Column(BigInteger, nullable=False)
+    name = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.telegram_id"))
 
-    user = relationship("User", back_populates="steam_ids")
-    games = relationship(
-        "GameInAccount", back_populates="steamid", passive_deletes=True
-    )
-    steam_inventorys = relationship(
-        "SteamInventory", back_populates="steamid", passive_deletes=True
-    )
+    user = relationship("User", back_populates="steams")
+    games = relationship("GameInAccount", back_populates="steam", passive_deletes=True)
+    inventorys = relationship("Inventory", back_populates="steam", passive_deletes=True)
 
 
 class Game(Base):
-    game_name = Column(String)
+    name = Column(String, nullable=False)
     game_id = Column(Integer, nullable=False, unique=True)
-    game_cost = Column(Integer)
+    cost = Column(Integer, nullable=False)
 
     games_in = relationship(
         "GameInAccount", back_populates="game", passive_deletes=True
@@ -47,13 +43,13 @@ class Game(Base):
 
 
 class GameInAccount(Base):
-    game_name = Column(String)
-    first_game_cost = Column(Integer)
-    time_in_game = Column(Integer)
-    steam_id = Column(BigInteger, ForeignKey("steamids.id", ondelete="CASCADE"))
+    game_name = Column(String, nullable=False)
+    first_cost = Column(Integer, nullable=False)
+    time_in_game = Column(Integer, nullable=False)
+    steam_id = Column(BigInteger, ForeignKey("steams.id", ondelete="CASCADE"))
     game_id = Column(Integer, ForeignKey("games.game_id", ondelete="CASCADE"))
 
-    steamid = relationship("SteamId", back_populates="games")
+    steam = relationship("Steam", back_populates="games")
     game = relationship(
         "Game",
         back_populates="games_in",
@@ -61,56 +57,54 @@ class GameInAccount(Base):
     )
 
 
-class SteamInventory(Base):
+class Inventory(Base):
     games_id = Column(Integer, nullable=False)
-    first_inventory_cost = Column(Integer, default=0, nullable=False)
-    inventory_cost = Column(Integer, default=0, nullable=False)
-    steam_id = Column(BigInteger, ForeignKey("steamids.id", ondelete="CASCADE"))
+    steam_id = Column(BigInteger, ForeignKey("steams.id", ondelete="CASCADE"))
 
-    steamid = relationship("SteamId", back_populates="steam_inventorys")
+    steam = relationship("Steam", back_populates="inventorys")
     items_in = relationship(
-        "SteamItemsInInventory", back_populates="steam_inventorys", passive_deletes=True
+        "ItemInInventory", back_populates="inventorys", passive_deletes=True
     )
 
 
-class SteamItemsInInventory(Base):
-    amount = Column(Integer)
-    first_item_cost = Column(Integer, default=0, nullable=False)
-    inventory_id = Column(Integer, ForeignKey("steaminventorys.id", ondelete="CASCADE"))
-    item_id = Column(BigInteger, ForeignKey("steamitems.classid", ondelete="CASCADE"))
+class ItemInInventory(Base):
+    amount = Column(Integer, nullable=False)
+    first_cost = Column(Integer, nullable=False)
+    inventory_id = Column(Integer, ForeignKey("inventorys.id", ondelete="CASCADE"))
+    item_id = Column(BigInteger, ForeignKey("items.classid", ondelete="CASCADE"))
 
-    steam_inventorys = relationship("SteamInventory", back_populates="items_in")
-    steam_item = relationship(
-        "SteamItem",
+    inventorys = relationship("Inventory", back_populates="items_in")
+    item = relationship(
+        "Item",
         back_populates="items_in",
         uselist=False,
     )
 
 
-class SteamItem(Base):
+class Item(Base):
     name = Column(String, nullable=False)
     app_id = Column(Integer, default=730, nullable=False)
     classid = Column(BigInteger, nullable=False, unique=True)
-    item_cost = Column(Integer, nullable=False)
+    cost = Column(Integer, nullable=False)
 
     items_in = relationship(
-        "SteamItemsInInventory", back_populates="steam_item", passive_deletes=True
+        "ItemInInventory", back_populates="item", passive_deletes=True
     )
 
 
 class ItemTrack(Base):
     name = Column(String, nullable=False)
-    first_item_cost = Column(Integer, default=0, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
-    item_id = Column(BigInteger, ForeignKey("steamitems.classid", ondelete="CASCADE"))
+    first_cost = Column(Integer, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.telegram_id", ondelete="CASCADE"))
+    item_id = Column(BigInteger, ForeignKey("items.classid", ondelete="CASCADE"))
 
     user = relationship("User", back_populates="tracking_items")
 
 
 class GameTrack(Base):
     name = Column(String, nullable=False)
-    first_game_cost = Column(Integer, default=0, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    first_cost = Column(Integer, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.telegram_id", ondelete="CASCADE"))
     game_id = Column(Integer, ForeignKey("games.game_id", ondelete="CASCADE"))
 
     user = relationship("User", back_populates="tracking_games")
