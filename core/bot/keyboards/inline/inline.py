@@ -14,10 +14,10 @@ def get_steams_menu(steam_id_list: list) -> InlineKeyboardMarkup:
     keyboard_builder = InlineKeyboardBuilder()
     for steam_id in steam_id_list:
         keyboard_builder.button(
-            text=steam_id.steam_name,
+            text=steam_id.name,
             callback_data=SteamidCallbackFactory(
                 action="steamid",
-                steam_name=steam_id.steam_name,
+                steam_name=steam_id.name,
                 steam_id=steam_id.steam_id,
             ),
         )

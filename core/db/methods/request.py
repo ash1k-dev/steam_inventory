@@ -3,12 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db.models.models import (
     User,
-    SteamId,
+    Steam,
     Game,
     GameInAccount,
-    SteamInventory,
-    SteamItem,
-    SteamItemsInInventory,
+    Inventory,
+    Item,
+    ItemInInventory,
     # ItemTrack,
     GameTrack,
     ItemTrack,
@@ -22,16 +22,22 @@ async def get_user_from_db(telegram_id: int, session: AsyncSession):
     return result.scalars().one_or_none()
 
 
+async def get_all_user_from_db(session: AsyncSession):
+    """Getting all users from the database"""
+    statement = select(User)
+    result = await session.execute(statement)
+    return result.scalars().all()
+
+
 async def get_steamid_from_db(steam_id: int, session: AsyncSession):
-    statement = select(SteamId).where(SteamId.steam_id == steam_id)
+    statement = select(Steam).where(Steam.steam_id == steam_id)
     result = await session.execute(statement)
     return result.scalars().one_or_none()
 
 
 async def get_all_steam_ids_from_db(telegram_id: int, session: AsyncSession):
     """Getting all steam ids from the database"""
-    user = await get_user_from_db(telegram_id=telegram_id, session=session)
-    statement = select(SteamId).where(SteamId.user_id == user.id)
+    statement = select(Steam).where(Steam.user_id == telegram_id)
     result = await session.execute(statement)
     return result.scalars().all()
 
@@ -47,7 +53,7 @@ async def get_top_games_from_db(
     if order == "time":
         order = GameInAccount.time_in_game
     elif order == "cost":
-        order = Game.game_cost
+        order = Game.cost
     elif order == "all":
         order = GameInAccount.time_in_game
     steam_id = await get_steamid_from_db(steam_id=steam_id, session=session)
@@ -55,9 +61,9 @@ async def get_top_games_from_db(
         select(
             GameInAccount.game_id,
             GameInAccount.game_name,
-            GameInAccount.first_game_cost,
+            GameInAccount.first_cost,
             GameInAccount.time_in_game,
-            Game.game_cost,
+            Game.cost,
         )
         .join(Game, Game.game_id == GameInAccount.game_id)
         .where(GameInAccount.steam_id == steam_id.id)
@@ -78,7 +84,7 @@ async def get_games_info_from_db(
             func.count(
                 GameInAccount.game_name,
             ),
-            func.sum(Game.game_cost),
+            func.sum(Game.cost),
             func.sum(
                 GameInAccount.time_in_game,
             ),
@@ -91,8 +97,8 @@ async def get_games_info_from_db(
 
 
 async def get_inventorys_id_from_db(steam_id, session: AsyncSession):
-    statement = select(SteamInventory).filter(
-        SteamInventory.steam_id == steam_id, SteamInventory.games_id == 730
+    statement = select(Inventory).filter(
+        Inventory.steam_id == steam_id, Inventory.games_id == 730
     )
     result = await session.execute(statement)
     return result.scalars().one_or_none()
@@ -108,14 +114,14 @@ async def get_items_info_from_db(
     )
     statement = (
         select(
-            func.sum(SteamItem.item_cost),
-            func.sum(SteamItemsInInventory.first_item_cost),
-            func.sum(SteamItemsInInventory.amount),
-            func.max(SteamItem.item_cost),
-            func.min(SteamItem.item_cost),
+            func.sum(Item.cost),
+            func.sum(ItemInInventory.first_cost),
+            func.sum(ItemInInventory.amount),
+            func.max(Item.cost),
+            func.min(Item.cost),
         )
-        .join(SteamItem, SteamItem.classid == SteamItemsInInventory.item_id)
-        .where(SteamInventory.id == inventory_id.id)
+        .join(Item, Item.classid == ItemInInventory.item_id)
+        .where(Inventory.id == inventory_id.id)
     )
     result = await session.execute(statement)
     return result.all()
@@ -131,13 +137,13 @@ async def get_amount_and_items_info_from_db(
     )
     statement = (
         select(
-            SteamItem.name,
-            SteamItem.item_cost,
-            SteamItemsInInventory.first_item_cost,
-            SteamItemsInInventory.amount,
+            Item.name,
+            Item.cost,
+            ItemInInventory.first_cost,
+            ItemInInventory.amount,
         )
-        .join(SteamItem, SteamItem.classid == SteamItemsInInventory.item_id)
-        .where(SteamInventory.id == inventory_id.id)
+        .join(Item, Item.classid == ItemInInventory.item_id)
+        .where(Inventory.id == inventory_id.id)
     )
     result = await session.execute(statement)
     return result.all()
@@ -146,7 +152,7 @@ async def get_amount_and_items_info_from_db(
 async def get_items_list_from_db(
     session: AsyncSession,
 ):
-    statement = select(SteamItem.classid)
+    statement = select(Item.classid)
     result = await session.execute(statement)
     return result.scalars().all()
 
@@ -161,17 +167,16 @@ async def get_games_list_from_db(
 
 async def get_all_tracking_items_from_db(telegram_id: int, session: AsyncSession):
     """Getting all tracking items from the database"""
-    user = await get_user_from_db(telegram_id=telegram_id, session=session)
     statement = (
         select(
             ItemTrack.name,
-            ItemTrack.first_item_cost,
+            ItemTrack.first_cost,
             ItemTrack.user_id,
             ItemTrack.item_id,
-            SteamItem.item_cost,
+            Item.cost,
         )
-        .join(SteamItem, ItemTrack.item_id == SteamItem.classid)
-        .where(ItemTrack.user_id == user.id)
+        .join(Item, ItemTrack.item_id == Item.classid)
+        .where(ItemTrack.user_id == telegram_id)
     )
     result = await session.execute(statement)
     return result.all()
@@ -179,17 +184,16 @@ async def get_all_tracking_items_from_db(telegram_id: int, session: AsyncSession
 
 async def get_all_tracking_games_from_db(telegram_id: int, session: AsyncSession):
     """Getting all tracking games from the database"""
-    user = await get_user_from_db(telegram_id=telegram_id, session=session)
     statement = (
         select(
             GameTrack.user_id,
             GameTrack.name,
             GameTrack.game_id,
-            GameTrack.first_game_cost,
-            Game.game_cost,
+            GameTrack.first_cost,
+            Game.cost,
         )
         .join(Game, Game.game_id == GameTrack.game_id)
-        .where(GameTrack.user_id == user.id)
+        .where(GameTrack.user_id == telegram_id)
     )
     result = await session.execute(statement)
     return result.all()
@@ -216,6 +220,18 @@ async def get_tracking_item_from_db(item_id: int, session: AsyncSession):
 
 
 async def get_item_from_db(item_id: int, session: AsyncSession):
-    statement = select(SteamItem).where(SteamItem.classid == item_id)
+    statement = select(Item).where(Item.classid == item_id)
     result = await session.execute(statement)
     return result.scalars().one_or_none()
+
+
+async def get_all_items_from_db(session: AsyncSession):
+    statement = select(Item)
+    result = await session.execute(statement)
+    return result.scalars().all()
+
+
+async def get_all_games_from_db(session: AsyncSession):
+    statement = select(Game)
+    result = await session.execute(statement)
+    return result.scalars().all()

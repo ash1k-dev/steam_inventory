@@ -39,7 +39,7 @@ router = Router()
 from aiogram.fsm.storage.redis import RedisStorage
 
 
-class AddSteamId(StatesGroup):
+class AddSteam(StatesGroup):
     """State to user"""
 
     added_steam_id = State()
@@ -52,7 +52,7 @@ async def get_start(message: Message, session: AsyncSession):
     result = await get_user_from_db(telegram_id=telegram_id, session=session)
     if result is None:
         await create_user(
-            user_name=message.from_user.full_name,
+            name=message.from_user.full_name,
             telegram_id=telegram_id,
             session=session,
         )
@@ -80,7 +80,7 @@ async def get_cost(message: Message, session: AsyncSession):
     await message.answer(f"Отслеживание стоимости", reply_markup=get_track_menu())
 
 
-@router.message(AddSteamId.added_steam_id, flags={"long_operation": "upload_document"})
+@router.message(AddSteam.added_steam_id, flags={"long_operation": "upload_document"})
 async def add_steam_id(
     message: Message,
     bot: Bot,
@@ -178,5 +178,5 @@ async def get_steam(
         await callback.message.answer(
             text="Введите Ваш Steam ID или никнейм:",
         )
-        await state.set_state(AddSteamId.added_steam_id)
+        await state.set_state(AddSteam.added_steam_id)
         await callback.answer()
