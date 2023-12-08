@@ -5,11 +5,14 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.utils import markdown
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.bot.utils.apsheduler import update_redis
 from core.db.methods.request import (
     get_all_tracking_games_from_db,
     get_tracking_game_from_db,
     get_all_tracking_items_from_db,
     get_tracking_item_from_db,
+    get_tracking_item_data_from_db,
+    get_tracking_game_data_from_db,
 )
 
 from urllib.parse import quote
@@ -37,6 +40,14 @@ from core.bot.keyboards.inline.callback_factory import (
     ItemsTrackCallbackFactory,
 )
 
+
+import redis
+import json
+import ast
+
+
+rs = redis.Redis(host="127.0.0.1", port=6379, decode_responses=True)
+
 router = Router()
 
 
@@ -52,22 +63,35 @@ class AddItemTrack(StatesGroup):
     added_item_track = State()
 
 
+def redis_convert_to_dict(telegram_id):
+    data = rs.get(telegram_id)
+    if data is not None:
+        return ast.literal_eval(data)
+    else:
+        return False
+
+
 @router.message(F.text == "Предметы")
 async def get_steam_ids(message: Message, session: AsyncSession, storage: RedisStorage):
     telegram_id = message.from_user.id
-    tracking_items_list = await get_all_tracking_items_from_db(
-        telegram_id=telegram_id, session=session
-    )
-    # for name, first_item_cost, user_id, item_id, item_cost in tracking_items_list:
-    #     await storage.redis.hmset(
-    #         f"item:{item_id}",
-    #         mapping={
-    #             "name": name,
-    #             "cost": item_cost,
-    #             "first_cost": first_item_cost,
-    #             "user_id": user_id,
-    #         },
-    #     )
+    user_data = redis_convert_to_dict(f"{telegram_id}")
+    if user_data:
+        tracking_items = user_data["tracking_items"]
+        tracking_items_list = []
+        for item_id, item_data in tracking_items.items():
+            tracking_items_list.append(
+                (
+                    item_data["name"],
+                    item_id,
+                    item_data["first_cost"],
+                    item_data["cost"],
+                )
+            )
+    else:
+        tracking_items_list = await get_all_tracking_items_from_db(
+            telegram_id=telegram_id, session=session
+        )
+
     await message.answer(
         f"Отслеживаемые предметы:",
         reply_markup=get_tracking_items_menu(tracking_items_list=tracking_items_list),
@@ -77,9 +101,23 @@ async def get_steam_ids(message: Message, session: AsyncSession, storage: RedisS
 @router.message(F.text == "Игры")
 async def get_steam_ids(message: Message, session: AsyncSession):
     telegram_id = message.from_user.id
-    tracking_games_list = await get_all_tracking_games_from_db(
-        telegram_id=telegram_id, session=session
-    )
+    user_data = redis_convert_to_dict(f"{telegram_id}")
+    if user_data:
+        tracking_items = user_data["tracking_games"]
+        tracking_games_list = []
+        for game_id, game_data in tracking_items.items():
+            tracking_games_list.append(
+                (
+                    game_data["name"],
+                    game_id,
+                    game_data["first_cost"],
+                    game_data["cost"],
+                )
+            )
+    else:
+        tracking_games_list = await get_all_tracking_games_from_db(
+            telegram_id=telegram_id, session=session
+        )
     await message.answer(
         f"Отслеживаемые игры:",
         reply_markup=get_tracking_games_menu(tracking_games_list=tracking_games_list),
@@ -94,14 +132,22 @@ async def get_tracking_games(
     state: FSMContext,
 ):
     if callback_data.action == "tracking_game":
-
+        user_data = redis_convert_to_dict(telegram_id=callback.from_user.id)
+        if user_data:
+            game = user_data["tracking_games"][str(callback_data.game_id)]
+        else:
+            tracking_game_data = await get_tracking_game_data_from_db(
+                game_id=callback_data.game_id, session=session
+            )
+            name, first_cost, cost = tracking_game_data[0]
+            game = {"name": name, "first_cost": first_cost, "cost": cost}
         await callback.message.answer(
-            text=f"{markdown.hbold(callback_data.name)}\n"
-            f"Первоначальная стоимость: {callback_data.first_game_cost}\n"
-            f"Актуальная стоимость: {callback_data.game_cost}",
-            reply_markup=get_control_menu_tracking_game(
-                game_id=callback_data.game_id, game_name=callback_data.name
-            ),
+            text=f"{markdown.hbold(game['name'])}\n"
+            f"Первоначальная стоимость: {game['first_cost']}\n"
+            f"Актуальная стоимость: {game['cost']}\n"
+            f"Изменение: {game['first_cost'] - game['cost']}\n"
+            f"Ссылка: {markdown.hlink('SteamLink', f'https://store.steampowered.com/app/{callback_data.game_id}')}",
+            reply_markup=get_control_menu_tracking_game(game_id=callback_data.game_id),
         )
         await callback.answer()
     elif callback_data.action == "delete":
@@ -165,29 +211,36 @@ async def get_tracking_item(
     callback_data: ItemsTrackCallbackFactory,
     session: AsyncSession,
     state: FSMContext,
-    storage: RedisStorage,
 ):
     if callback_data.action == "tracking_item":
-        tracking_data = await storage.redis.hgetall(f"item:{callback_data.item_id}")
-        tracking_data = {
-            key.decode("utf-8"): value.decode("utf-8")
-            for key, value in tracking_data.items()
-        }
+        user_data = redis_convert_to_dict(telegram_id=callback.from_user.id)
+        if user_data:
+            item = user_data["tracking_items"][str(callback_data.item_id)]
+            name = item["name"]
+        else:
+            tracking_item_data = await get_tracking_item_data_from_db(
+                item_id=callback_data.item_id, session=session
+            )
+            name, first_cost, cost = tracking_item_data[0]
+            item = {"name": name, "first_cost": first_cost, "cost": cost}
+            name = item["name"]
         await callback.message.answer(
-            text=f"{markdown.hbold(tracking_data['name'])}\n"
-            f"Первоначальная стоимость: {tracking_data['first_cost']}\n"
-            f"Актуальная стоимость: {tracking_data['cost']}",
+            text=f"{markdown.hbold(item['name'])}\n"
+            f"Первоначальная стоимость: {item['first_cost']}\n"
+            f"Актуальная стоимость: {item['cost']}\n"
+            f"Изменение: {item['first_cost'] - item['cost']}({int((item['first_cost'] - item['cost']) / item['first_cost'] * 100)}%)\n"
+            f"Сссылка:  {markdown.hlink('SteamLink', f'https://steamcommunity.com/market/listings/730/{quote(name)}')}",
             reply_markup=get_control_menu_tracking_items(
-                item_id=callback_data.item_id, item_name=tracking_data["name"]
+                item_id=callback_data.item_id, item_name=item["name"]
             ),
         )
+
         await callback.answer()
     elif callback_data.action == "delete":
         await delete_tracking_item(item_id=callback_data.item_id, session=session)
         await callback.message.delete()
-        await callback.message.answer(
-            text=f"Предмет {callback_data.name} успешно удален"
-        )
+        await update_redis(user_telegram_id=callback.from_user.id, session=session)
+        await callback.message.answer(text=f"Предмет успешно удален")
         await callback.answer()
     elif callback_data.action == "add_tracking_item":
         await callback.message.answer(
@@ -202,6 +255,7 @@ async def get_tracking_item(
             session=session,
         )
         await state.clear()
+        await update_redis(user_telegram_id=callback.from_user.id, session=session)
         await callback.message.answer(
             text="Предмет успешно добавлен",
         )
