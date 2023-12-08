@@ -1,6 +1,11 @@
+from aiogram.utils import markdown
 from sqlalchemy import select, desc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from urllib.parse import quote
+
+
+from config import DEPRECIATION_FACTOR, INCREASE_FACTOR
 from core.db.models.models import (
     User,
     Steam,
@@ -9,7 +14,6 @@ from core.db.models.models import (
     Inventory,
     Item,
     ItemInInventory,
-    # ItemTrack,
     GameTrack,
     ItemTrack,
 )
@@ -45,9 +49,9 @@ async def get_all_steam_ids_from_db(telegram_id: int, session: AsyncSession):
 #
 async def get_top_games_from_db(
     steam_id: int,
-    limit: int,
-    order: str,
     session: AsyncSession,
+    limit: int = 1000,
+    order: str = "all",
 ):
     """Getting games from the database"""
     if order == "time":
@@ -170,9 +174,8 @@ async def get_all_tracking_items_from_db(telegram_id: int, session: AsyncSession
     statement = (
         select(
             ItemTrack.name,
-            ItemTrack.first_cost,
-            ItemTrack.user_id,
             ItemTrack.item_id,
+            ItemTrack.first_cost,
             Item.cost,
         )
         .join(Item, ItemTrack.item_id == Item.classid)
@@ -186,7 +189,6 @@ async def get_all_tracking_games_from_db(telegram_id: int, session: AsyncSession
     """Getting all tracking games from the database"""
     statement = (
         select(
-            GameTrack.user_id,
             GameTrack.name,
             GameTrack.game_id,
             GameTrack.first_cost,
@@ -219,6 +221,28 @@ async def get_tracking_item_from_db(item_id: int, session: AsyncSession):
     return result.scalars().one_or_none()
 
 
+async def get_tracking_item_data_from_db(item_id: int, session: AsyncSession):
+    """Getting all steam ids from the database"""
+    statement = (
+        select(ItemTrack.name, ItemTrack.first_cost, Item.cost)
+        .join(Item, ItemTrack.item_id == Item.classid)
+        .where(ItemTrack.item_id == item_id)
+    )
+    result = await session.execute(statement)
+    return result.all()
+
+
+async def get_tracking_game_data_from_db(game_id: int, session: AsyncSession):
+    """Getting all steam ids from the database"""
+    statement = (
+        select(GameTrack.name, GameTrack.first_cost, Game.cost)
+        .join(Game, GameTrack.game_id == Game.game_id)
+        .where(GameTrack.game_id == game_id)
+    )
+    result = await session.execute(statement)
+    return result.all()
+
+
 async def get_item_from_db(item_id: int, session: AsyncSession):
     statement = select(Item).where(Item.classid == item_id)
     result = await session.execute(statement)
@@ -235,3 +259,58 @@ async def get_all_games_from_db(session: AsyncSession):
     statement = select(Game)
     result = await session.execute(statement)
     return result.scalars().all()
+
+
+async def get_items_changes(session, user_telegram_id):
+    all_steam_ids = await get_all_steam_ids_from_db(
+        telegram_id=user_telegram_id, session=session
+    )
+    items = {}
+    for steam_id in all_steam_ids:
+        items_info = await get_amount_and_items_info_from_db(
+            steam_id=steam_id.steam_id, session=session
+        )
+        items[f"{steam_id.steam_id}"] = []
+        for item in items_info:
+            name, item_cost, first_item_cost, _ = item
+            if item_cost > first_item_cost * float(INCREASE_FACTOR):
+                items[f"{steam_id.steam_id}"].append((name, item_cost, first_item_cost))
+    return items
+
+
+async def get_tracking_items_changes(session, user_telegram_id):
+    all_tracking_items = await get_all_tracking_items_from_db(
+        telegram_id=user_telegram_id, session=session
+    )
+    tracking_items = []
+    for tracking_item in all_tracking_items:
+        name, item_id, first_item_cost, item_cost = tracking_item
+        if item_cost < first_item_cost * float(DEPRECIATION_FACTOR):
+            tracking_items.append((name, item_id, first_item_cost, item_cost))
+    return tracking_items
+
+
+async def get_tracking_games_changes(user_telegram_id, session):
+    all_tracking_games = await get_all_tracking_games_from_db(
+        telegram_id=user_telegram_id, session=session
+    )
+    tracking_games = []
+    for tracking_game in all_tracking_games:
+        name, game_id, first_game_cost, game_cost = tracking_game
+        if game_cost < first_game_cost * float(DEPRECIATION_FACTOR):
+            tracking_games.append((name, game_id, first_game_cost, game_cost))
+    return tracking_games
+
+
+async def get_changes(user_telegram_id, session):
+    items_changes = await get_items_changes(
+        user_telegram_id=user_telegram_id, session=session
+    )
+    get_tracking_items = await get_tracking_items_changes(
+        user_telegram_id=user_telegram_id, session=session
+    )
+    get_tracking_games = await get_tracking_games_changes(
+        user_telegram_id=user_telegram_id,
+        session=session,
+    )
+    return get_tracking_items, get_tracking_games, items_changes
