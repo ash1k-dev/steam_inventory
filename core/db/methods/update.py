@@ -2,8 +2,12 @@ from core.db.methods.request import (
     get_all_games_from_db,
     get_all_items_from_db,
     get_all_tracking_games_from_db,
+    get_all_tracking_items_from_db,
+    get_amount_and_items_info_from_db,
+    get_top_games_from_db,
+    get_all_steam_ids_from_db,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from core.inventory.steam import get_item_cost, get_game_cost
 from time import sleep
 from random import randrange
@@ -45,25 +49,116 @@ async def update_all_games(session: AsyncSession):
     await session.commit()
 
 
-async def method_name(user_telegram_id, session):
-    all_tracking_games = await get_all_tracking_games_from_db(
+async def update_all_items_and_games(session):
+    await update_all_items(session=session)
+    await update_all_games(session=session)
+
+
+async def update_tracking_redis(session, type_item, user_telegram_id=0):
+    if type_item == "tracking_items":
+        all_items = await get_all_tracking_items_from_db(
+            telegram_id=user_telegram_id, session=session
+        )
+    elif type_item == "tracking_games":
+        all_items = await get_all_tracking_games_from_db(
+            telegram_id=user_telegram_id, session=session
+        )
+    tracking_items_redis = {}
+    for item in all_items:
+        name, item_id, first_cost, cost = item
+        difference = first_cost - cost
+        tracking_items_redis.update(
+            {
+                f"{item_id}": {
+                    "name": name,
+                    "first_cost": first_cost,
+                    "cost": cost,
+                    "difference": difference,
+                }
+            }
+        )
+    return tracking_items_redis
+
+
+async def update_items_redis(session, steam_id):
+    all_items = await get_amount_and_items_info_from_db(
+        session=session, steam_id=steam_id
+    )
+    tracking_items_redis = {}
+    for item in all_items:
+        name, cost, first_cost, amount = item
+        difference = first_cost - cost
+        tracking_items_redis.update(
+            {
+                f"{name}": {
+                    "name": name,
+                    "first_cost": first_cost,
+                    "cost": cost,
+                    "amount": amount,
+                    "difference": difference,
+                }
+            }
+        )
+    return tracking_items_redis
+
+
+async def update_games_redis(session, steam_id):
+    all_items = await get_top_games_from_db(session=session, steam_id=steam_id)
+    tracking_items_redis = {}
+    for item in all_items:
+        item_id, game_name, first_cost, time_in_game, cost = item
+        difference = first_cost - cost
+        tracking_items_redis.update(
+            {
+                f"{item_id}": {
+                    "name": game_name,
+                    "first_cost": first_cost,
+                    "cost": cost,
+                    "time_in_game": time_in_game,
+                    "difference": difference,
+                }
+            }
+        )
+    return tracking_items_redis
+
+
+async def update_redis(user_telegram_id, session: async_sessionmaker):
+    tracking_items = await update_tracking_redis(
+        session=session,
+        user_telegram_id=user_telegram_id,
+        type_item="tracking_items",
+    )
+    tracking_games = await update_tracking_redis(
+        session=session,
+        user_telegram_id=user_telegram_id,
+        type_item="tracking_games",
+    )
+    all_steam_ids = await get_all_steam_ids_from_db(
         telegram_id=user_telegram_id, session=session
     )
-    tracking_games_redis = {}
-    tracking_games_redis[str(user_telegram_id)] = {}
-    for tracking_game in all_tracking_games:
-        _, name, game_id, first_game_cost, game_cost = tracking_game
-        difference_for_tracking_games = first_game_cost - game_cost
-        tracking_games_redis[str(user_telegram_id)][str(game_id)] = {}
-        tracking_games_redis[str(user_telegram_id)][str(game_id)]["name"] = name
-        tracking_games_redis[str(user_telegram_id)][str(game_id)][
-            "first_game_cost"
-        ] = first_game_cost
-        tracking_games_redis[str(user_telegram_id)][str(game_id)][
-            "game_cost"
-        ] = game_cost
-        tracking_games_redis[str(user_telegram_id)][str(game_id)][
-            "difference_for_tracking_games"
-        ] = difference_for_tracking_games
-        for key in tracking_games_redis.keys():
-            rs.set(key, str(tracking_games_redis[key]), ex=600)
+    update_items = {}
+    for steam_id in all_steam_ids:
+        update_items_st = await update_items_redis(
+            session=session, steam_id=steam_id.steam_id
+        )
+        update_games_st = await update_games_redis(
+            session=session, steam_id=steam_id.steam_id
+        )
+        update_items_steam = {
+            f"{steam_id.steam_id}": {
+                "update_items": update_items_st,
+                "update_games": update_games_st,
+            }
+        }
+        update_items.update(update_items_steam)
+
+    user_data = {
+        f"{user_telegram_id}": {
+            "tracking_items": tracking_items,
+            "tracking_games": tracking_games,
+            "steam_id": update_items,
+        }
+    }
+
+    for key in user_data.keys():
+        rs.set(key, str(user_data[key]), ex=6000)
