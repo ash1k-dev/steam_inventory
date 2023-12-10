@@ -132,9 +132,15 @@ async def get_items_info_from_db(
 
 
 async def get_amount_and_items_info_from_db(
-    session: AsyncSession,
-    steam_id,
+    session: AsyncSession, steam_id, order="cost", limit=5
 ):
+    if order == "all":
+        order = Item.cost
+        limit = 10000
+    elif order == "top_cost":
+        order = Item.cost
+    elif order == "top_gain":
+        order = "diff"
     steamid_from_db = await get_steamid_from_db(steam_id=steam_id, session=session)
     inventory_id = await get_inventorys_id_from_db(
         session=session, steam_id=steamid_from_db.id
@@ -145,9 +151,12 @@ async def get_amount_and_items_info_from_db(
             Item.cost,
             ItemInInventory.first_cost,
             ItemInInventory.amount,
+            (Item.cost - ItemInInventory.first_cost).label("diff"),
         )
         .join(Item, Item.classid == ItemInInventory.item_id)
         .where(Inventory.id == inventory_id.id)
+        .order_by(desc(order))
+        .limit(limit)
     )
     result = await session.execute(statement)
     return result.all()

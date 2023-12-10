@@ -20,9 +20,9 @@ from core.bot.keyboards.inline.inline import (
     get_pagination,
     get_items_back_menu,
 )
-from aiogram.fsm.storage.redis import RedisStorage
-import json
 
+
+from redis_data_convert import redis_convert_to_dict
 
 router = Router()
 
@@ -32,75 +32,31 @@ async def get_items(
     callback: CallbackQuery,
     callback_data: ItemsCallbackFactory,
     session: AsyncSession,
-    storage: RedisStorage,
 ):
-    steam_id = callback_data.steam_id
-    steam_name = callback_data.steam_name
-    general_items_info = await get_items_info_from_db(
-        steam_id=steam_id, session=session
-    )
-    total_cost, first_total_cost, total_amount, max_cost, min_cost = general_items_info[
-        0
-    ]
-    difference_total_cost = total_cost - first_total_cost
-    items_dict = []
-    items_info = await get_amount_and_items_info_from_db(
-        steam_id=steam_id, session=session
-    )
-    for name, item_cost, first_cost, amount in items_info:
-        store = f"https://steamcommunity.com/market/listings/730/{quote(name)}"
-        diff = item_cost - first_cost
-        if first_cost != 0:
-            items_dict.append(
-                {
-                    "name": name,
-                    "cost": item_cost,
-                    "first_cost": first_cost,
-                    "diff": diff,
-                    "diff_percent": int(diff / first_cost * 100),
-                    "amount": amount,
-                    "store": store,
-                }
+    if callback_data.action == "info" or callback_data.action == "back":
+        steam_id = callback_data.steam_id
+        steam_name = callback_data.steam_name
+        user_data = redis_convert_to_dict(f"{callback.from_user.id}")
+        if user_data:
+            items_info = user_data["steam_id"][f"{steam_id}"]["items_info"]
+            total_cost = items_info["total_cost"]
+            first_total_cost = items_info["first_total_cost"]
+            total_amount = items_info["total_amount"]
+            max_cost = items_info["max_cost"]
+            min_cost = items_info["min_cost"]
+            difference_total_cost = total_cost - first_total_cost
+        else:
+            general_items_info = await get_items_info_from_db(
+                steam_id=steam_id, session=session
             )
-    if callback_data.action == "all":
-        grouped_items_list = get_grouped_items_list(
-            items_dict=items_dict, filter="cost"
-        )
-        await callback.message.edit_text(
-            text=f"{grouped_items_list[callback_data.page]}",
-            disable_web_page_preview=True,
-            reply_markup=get_pagination(
-                action="all",
-                callbackfactory=ItemsCallbackFactory,
-                page=callback_data.page,
-                pages_amount=len(grouped_items_list),
-                steam_id=callback_data.steam_id,
-                steam_name=callback_data.steam_name,
-            ),
-        )
-    elif callback_data.action == "top_cost":
-        grouped_items_list = get_grouped_items_list(
-            items_dict=items_dict, filter="cost"
-        )
-        await callback.message.edit_text(
-            text=f"{grouped_items_list[callback_data.page]}",
-            disable_web_page_preview=True,
-            reply_markup=get_items_back_menu(
-                steam_id=callback_data.steam_id, steam_name=callback_data.steam_name
-            ),
-        )
-    elif callback_data.action == "top_gain":
-        grouped_items_list = get_grouped_items_list(
-            items_dict=items_dict, filter="diff_percent"
-        )
-        await callback.message.edit_text(
-            text=f"{grouped_items_list[callback_data.page]}",
-            disable_web_page_preview=True,
-            reply_markup=get_items_back_menu(
-                steam_id=callback_data.steam_id, steam_name=callback_data.steam_name
-            ),
-        )
-    elif callback_data.action == "info" or callback_data.action == "back":
+            (
+                total_cost,
+                first_total_cost,
+                total_amount,
+                max_cost,
+                min_cost,
+            ) = general_items_info[0]
+            difference_total_cost = total_cost - first_total_cost
         await callback.message.answer(
             text=f"{markdown.hbold('Аккаунт ' + steam_name)}\n"
             f"Количество предметов: {total_amount}\n"
@@ -114,21 +70,56 @@ async def get_items(
                 steam_name=callback_data.steam_name,
             ),
         )
-
-
-def get_grouped_items_list(items_dict: list, filter: str) -> list:
-    items_list = []
-    grouped_items_list = []
-    items_dict = sorted(items_dict, key=lambda x: x[f"{filter}"], reverse=True)
-    for item in items_dict:
-        items_list.append(
-            f"{markdown.hbold(item['name'])}\n"
-            f"Текущая стоимость: {item['cost']}руб.\n"
-            f"Первоначальная стоимость: {item['first_cost']}руб.\n"
-            f"Прирост стоимости: {item['diff']}руб.({item['diff_percent']}%)\n"
-            f"Количество предметов: {item['amount']}\n"
-            f"Ссылка на торговую площадку: {markdown.hlink('SteamLink', item['store'])}\n\n"
-        )
-    for i in range(0, len(items_list), 5):
-        grouped_items_list.append("".join(items_list[i : i + 5]))
-    return grouped_items_list
+    else:
+        if callback_data.action == "all":
+            all_items = await get_amount_and_items_info_from_db(
+                steam_id=callback_data.steam_id,
+                limit=10000,
+                order="all",
+                session=session,
+            )
+        elif callback_data.action == "top_cost":
+            all_items = await get_amount_and_items_info_from_db(
+                steam_id=callback_data.steam_id, order="top_cost", session=session
+            )
+        elif callback_data.action == "top_gain":
+            all_items = await get_amount_and_items_info_from_db(
+                steam_id=callback_data.steam_id, order="top_gain", session=session
+            )
+        items_list = []
+        grouped_items_list = []
+        for name, item_cost, first_cost, amount, diff in all_items:
+            if first_cost != 0:
+                items_list.append(
+                    f"{markdown.hbold(name)}\n"
+                    f"Текущая стоимость: {item_cost}руб.\n"
+                    f"Первоначальная стоимость: {first_cost}руб.\n"
+                    f"Прирост стоимости: {diff}руб.({int(diff / first_cost * 100)}%)\n"
+                    f"Количество предметов: {amount}\n"
+                    f"Ссылка на торговую площадку:"
+                    f" {markdown.hlink('SteamLink', f'https://steamcommunity.com/market/listings/730/{quote(name)}')}\n\n"
+                )
+        for i in range(0, len(items_list), 5):
+            grouped_items_list.append("".join(items_list[i : i + 5]))
+        if len(items_list) <= 5:
+            await callback.message.answer(
+                text=f"{''.join(items_list)}",
+                disable_web_page_preview=True,
+                reply_markup=get_items_back_menu(
+                    steam_id=callback_data.steam_id, steam_name=callback_data.steam_name
+                ),
+            )
+        else:
+            await callback.message.edit_text(
+                text=f"{grouped_items_list[callback_data.page]}",
+                disable_web_page_preview=True,
+                reply_markup=get_pagination(
+                    action="all",
+                    callbackfactory=ItemsCallbackFactory,
+                    page=callback_data.page,
+                    pages_amount=len(grouped_items_list),
+                    steam_id=callback_data.steam_id,
+                    steam_name=callback_data.steam_name,
+                ),
+            )
+    await callback.answer()
