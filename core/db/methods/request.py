@@ -47,7 +47,7 @@ async def get_all_steam_ids_from_db(telegram_id: int, session: AsyncSession):
 
 
 #
-async def get_top_games_from_db(
+async def get_games_from_db(
     steam_id: int,
     session: AsyncSession,
     limit: int = 1000,
@@ -281,7 +281,7 @@ async def get_items_changes(session, user_telegram_id):
         )
         items[f"{steam_id.steam_id}"] = []
         for item in items_info:
-            name, item_cost, first_item_cost, _ = item
+            name, item_cost, first_item_cost, _, _ = item
             if item_cost > first_item_cost * float(INCREASE_FACTOR):
                 items[f"{steam_id.steam_id}"].append((name, item_cost, first_item_cost))
     return items
