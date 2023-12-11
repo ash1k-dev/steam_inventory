@@ -1,28 +1,23 @@
-from aiogram import Router
-from aiogram.types import CallbackQuery
-from sqlalchemy.ext.asyncio import AsyncSession
-from aiogram.utils import markdown
-
-
 from urllib.parse import quote
 
+from aiogram import Router
+from aiogram.types import CallbackQuery
+from aiogram.utils import markdown
 
+from config import ITEMS_ON_PAGE
+from redis_data_convert import redis_convert_to_dict
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.bot.keyboards.inline.callback_factory import ItemsCallbackFactory
+from core.bot.keyboards.inline.inline import (
+    get_items_back_menu,
+    get_items_menu,
+    get_pagination,
+)
 from core.db.methods.request import (
     get_amount_and_items_info_from_db,
     get_items_info_from_db,
 )
-
-
-from core.bot.keyboards.inline.callback_factory import ItemsCallbackFactory
-
-from core.bot.keyboards.inline.inline import (
-    get_items_menu,
-    get_pagination,
-    get_items_back_menu,
-)
-
-
-from redis_data_convert import redis_convert_to_dict
 
 router = Router()
 
@@ -50,7 +45,8 @@ async def get_items(
             f"Количество предметов: {total_amount}\n"
             f"Общая стоимость предметов: {total_cost}руб.\n"
             f"Первоначальная стоимость предметов: {first_total_cost}руб.\n"
-            f"Прирост стоимости: {difference_total_cost}руб.({int((difference_total_cost/first_total_cost)*100)}%)\n"
+            f"Прирост стоимости: {difference_total_cost}руб."
+            f"({int((difference_total_cost/first_total_cost)*100)}%)\n"
             f"Максимальная стоимость предмета: {max_cost} \n"
             f"Минимальная стоимость предмета: {min_cost}",
             reply_markup=get_items_menu(
@@ -61,11 +57,11 @@ async def get_items(
     else:
         if callback_data.action == "all":
             all_items = await get_items_list(
-                callback_data, session, steam_id, user_data, limit=1000, order="cost"
+                callback_data, session, steam_id, user_data, order="cost"
             )
         elif callback_data.action == "top_cost":
             all_items = await get_items_list(
-                callback_data, session, steam_id, user_data, limit=5, order="cost"
+                callback_data, session, steam_id, user_data, order="cost"
             )
         elif callback_data.action == "top_gain":
             all_items = await get_items_list(
@@ -73,13 +69,12 @@ async def get_items(
                 session,
                 steam_id,
                 user_data,
-                limit=5,
                 order="difference",
             )
         grouped_items_list, items_list = await get_items_text(all_items)
-        for i in range(0, len(items_list), 5):
-            grouped_items_list.append("".join(items_list[i : i + 5]))
-        if len(items_list) <= 5:
+        for i in range(0, len(items_list), ITEMS_ON_PAGE):
+            grouped_items_list.append("".join(items_list[i : i + ITEMS_ON_PAGE]))
+        if len(items_list) <= ITEMS_ON_PAGE:
             await callback.message.answer(
                 text=f"{''.join(items_list)}",
                 disable_web_page_preview=True,
@@ -120,14 +115,13 @@ async def get_items_text(all_items):
     return grouped_items_list, items_list
 
 
-async def get_items_list(callback_data, session, steam_id, user_data, limit, order):
+async def get_items_list(callback_data, session, steam_id, user_data, order):
     if user_data:
         all_items = []
-        items = user_data["steam_id"][f"{steam_id}"]["items"]
-        print(items)
+        items = user_data["steam_ids"][f"{steam_id}"]["items"]
         items = [items_data for items_data in items.values()]
         items = sorted(items, key=lambda x: x[order], reverse=True)
-        for item in items[:limit]:
+        for item in items[: callback_data.limit]:
             name = item["name"]
             cost = item["cost"]
             first_cost = item["first_cost"]
@@ -137,8 +131,8 @@ async def get_items_list(callback_data, session, steam_id, user_data, limit, ord
     else:
         all_items = await get_amount_and_items_info_from_db(
             steam_id=callback_data.steam_id,
-            limit=10000,
-            order="all",
+            limit=callback_data.limit,
+            order=order,
             session=session,
         )
     return all_items
@@ -146,7 +140,7 @@ async def get_items_list(callback_data, session, steam_id, user_data, limit, ord
 
 async def get_items_info(session, steam_id, user_data):
     if user_data:
-        items_info = user_data["steam_id"][f"{steam_id}"]["items_info"]
+        items_info = user_data["steam_ids"][f"{steam_id}"]["items_info"]
         total_cost = items_info["total_cost"]
         first_total_cost = items_info["first_total_cost"]
         total_amount = items_info["total_amount"]
