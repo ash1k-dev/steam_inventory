@@ -1,21 +1,17 @@
-from aiogram.utils import markdown
-from sqlalchemy import select, desc, func
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from urllib.parse import quote
-
 
 from config import DEPRECIATION_FACTOR, INCREASE_FACTOR
 from core.db.models.models import (
-    User,
-    Steam,
     Game,
     GameInAccount,
+    GameTrack,
     Inventory,
     Item,
     ItemInInventory,
-    GameTrack,
     ItemTrack,
+    Steam,
+    User,
 )
 
 
@@ -41,9 +37,9 @@ async def get_steamid_from_db(steam_id: int, session: AsyncSession):
 
 async def get_all_steam_ids_from_db(telegram_id: int, session: AsyncSession):
     """Getting all steam ids from the database"""
-    statement = select(Steam).where(Steam.user_id == telegram_id)
+    statement = select(Steam.steam_id, Steam.name).where(Steam.user_id == telegram_id)
     result = await session.execute(statement)
-    return result.scalars().all()
+    return result.all()
 
 
 #
@@ -125,14 +121,14 @@ async def get_items_info_from_db(
             func.min(Item.cost),
         )
         .join(Item, Item.classid == ItemInInventory.item_id)
-        .where(Inventory.id == inventory_id.id)
+        .where(ItemInInventory.inventory_id == inventory_id.id)
     )
     result = await session.execute(statement)
     return result.all()
 
 
 async def get_amount_and_items_info_from_db(
-    session: AsyncSession, steam_id, order="cost", limit=5
+    session: AsyncSession, steam_id, order="all", limit=5
 ):
     if order == "all":
         order = Item.cost
@@ -140,7 +136,7 @@ async def get_amount_and_items_info_from_db(
     elif order == "top_cost":
         order = Item.cost
     elif order == "top_gain":
-        order = "diff"
+        order = "difference"
     steamid_from_db = await get_steamid_from_db(steam_id=steam_id, session=session)
     inventory_id = await get_inventorys_id_from_db(
         session=session, steam_id=steamid_from_db.id
@@ -151,10 +147,10 @@ async def get_amount_and_items_info_from_db(
             Item.cost,
             ItemInInventory.first_cost,
             ItemInInventory.amount,
-            (Item.cost - ItemInInventory.first_cost).label("diff"),
+            (Item.cost - ItemInInventory.first_cost).label("difference"),
         )
         .join(Item, Item.classid == ItemInInventory.item_id)
-        .where(Inventory.id == inventory_id.id)
+        .where(ItemInInventory.inventory_id == inventory_id.id)
         .order_by(desc(order))
         .limit(limit)
     )
@@ -284,6 +280,8 @@ async def get_items_changes(session, user_telegram_id):
             name, item_cost, first_item_cost, _, _ = item
             if item_cost > first_item_cost * float(INCREASE_FACTOR):
                 items[f"{steam_id.steam_id}"].append((name, item_cost, first_item_cost))
+        print(items[f"{steam_id.steam_id}"])
+    print(items)
     return items
 
 
