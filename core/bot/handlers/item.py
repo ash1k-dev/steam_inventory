@@ -1,6 +1,7 @@
 from urllib.parse import quote
 
 from aiogram import Router
+from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import CallbackQuery
 from aiogram.utils import markdown
 
@@ -27,10 +28,13 @@ async def get_items(
     callback: CallbackQuery,
     callback_data: ItemsCallbackFactory,
     session: AsyncSession,
+    storage: RedisStorage,
 ):
     steam_id = callback_data.steam_id
     steam_name = callback_data.steam_name
-    user_data = redis_convert_to_dict(f"{callback.from_user.id}")
+    user_data = await redis_convert_to_dict(
+        telegram_id=f"{callback.from_user.id}", storage=storage
+    )
     if callback_data.action == "info" or callback_data.action == "back":
         (
             difference_total_cost,
@@ -141,6 +145,7 @@ async def get_items_list(callback_data, session, steam_id, user_data, order):
 async def get_items_info(session, steam_id, user_data):
     if user_data:
         items_info = user_data["steam_ids"][f"{steam_id}"]["items_info"]
+        print(items_info)
         total_cost = items_info["total_cost"]
         first_total_cost = items_info["first_total_cost"]
         total_amount = items_info["total_amount"]

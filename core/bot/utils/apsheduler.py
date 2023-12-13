@@ -1,27 +1,20 @@
-from aiogram import Bot
-from aiogram.utils import markdown
-from sqlalchemy.ext.asyncio import async_sessionmaker
-
 from urllib.parse import quote
 
-from methods.request import (
-    get_all_user_from_db,
-    get_changes,
-)
+from aiogram import Bot
+from aiogram.utils import markdown
+from methods.request import get_all_user_from_db, get_changes
+from methods.update import update_all_items_and_games, update_redis
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 
-from methods.update import (
-    update_redis,
-    update_all_items_and_games,
-)
-
-
-async def check_update(bot: Bot, sessionmaker: async_sessionmaker) -> None:
+async def check_update(bot: Bot, sessionmaker: async_sessionmaker, storage) -> None:
     async with sessionmaker() as session:
-        await update_all_items_and_games(session)
+        # await update_all_items_and_games(session)
         all_users = await get_all_user_from_db(session=session)
         for user in all_users:
-            await update_redis(user_telegram_id=user.telegram_id, session=session)
+            await update_redis(
+                user_telegram_id=user.telegram_id, session=session, storage=storage
+            )
             changes_dict = await get_changes(
                 user_telegram_id=user.telegram_id, session=session
             )
@@ -35,12 +28,13 @@ async def send_changes(bot, user_telegram_id, changes_dict):
     if tracking_items:
         for_sending_tracking_items = "Подешевевшие предметы:\n\n"
         for name, item_id, first_item_cost, item_cost in tracking_items:
-            difference_for_tracking_items = first_item_cost - item_cost
+            difference = first_item_cost - item_cost
             for_sending_tracking_items += (
                 f"Название предмета: {name} \n"
                 f"Первоначальная стоимость: {first_item_cost} \n"
                 f"Актуальная стоимость: {item_cost} \n"
-                f"Понижение: -{difference_for_tracking_items} руб.(-{int((difference_for_tracking_items / first_item_cost) * 100)}%) \n"
+                f"Понижение: -{difference} "
+                f"руб.(-{int((difference/ first_item_cost) * 100)}%) \n"
                 f"Ссылка на предмет:"
                 f" {markdown.hlink('SteamLink', f'https://steamcommunity.com/market/listings/730/{quote(name)}')} \n\n\n"
             )
@@ -57,7 +51,8 @@ async def send_changes(bot, user_telegram_id, changes_dict):
                 f"Название игры: {name} \n"
                 f"Первоначальная стоимость: {first_game_cost} \n"
                 f"Актуальная стоимость: {game_cost} \n"
-                f"Изменение: -{difference_for_tracking_games} руб.(-{int((difference_for_tracking_games / first_game_cost) * 100)}%) \n"
+                f"Изменение: -{difference_for_tracking_games} руб."
+                f"(-{int((difference_for_tracking_games / first_game_cost) * 100)}%) \n"
                 f"Ссылка на игру: "
                 f"{markdown.hlink('SteamLink', f'https://store.steampowered.com/app/{game_id}')}\n\n"
             )
@@ -76,9 +71,10 @@ async def send_changes(bot, user_telegram_id, changes_dict):
                     f"Название предмета: {name} \n"
                     f"Первоначальная стоимость: {first_item_cost} \n"
                     f"Актуальная стоимость: {item_cost} \n"
-                    f"Прирост: +{difference_for_item} руб. (+{int((difference_for_item / first_item_cost) * 100)}%)\n"
+                    f"Прирост: +{difference_for_item} руб. "
+                    # f"(+{int((difference_for_item / first_item_cost) * 100)}%)\n"
                     f"Ссылка на предмет:"
-                    f" {markdown.hlink('SteamLink', f'https://steamcommunity.com/market/listings/730/{quote(name)}')} \n\n\n"
+                    f" {markdown.hlink('SteamLink', f'https://steamcommunity.com/market/listings/730/{quote(name)}')} \n\n"
                 )
             await bot.send_message(
                 chat_id=user_telegram_id,
