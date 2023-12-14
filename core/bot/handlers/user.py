@@ -22,6 +22,8 @@ from core.db.methods.request import (
     get_all_steam_ids_from_db,
     get_steamid_from_db,
     get_user_from_db,
+    check_steam_id_exist_in_redis_or_db,
+    get_steam_ids_from_redis_or_db,
 )
 from core.inventory.steam import get_steam_id, get_steam_name
 
@@ -53,17 +55,9 @@ async def get_start(message: Message, session: AsyncSession):
 
 @router.message(F.text == "Мои Steam id")
 async def get_steam_ids(message: Message, session: AsyncSession, storage: RedisStorage):
-    telegram_id = message.from_user.id
-    user_data = await redis_convert_to_dict(
-        telegram_id=f"{telegram_id}", storage=storage
+    steam_ids_list = await get_steam_ids_from_redis_or_db(
+        session=session, storage=storage, telegram_id=message.from_user.id
     )
-    if user_data:
-        steam_ids_list = user_data["steam_ids"]["ids"]
-        steam_ids_list = [(steam_id, name) for steam_id, name in steam_ids_list.items()]
-    else:
-        steam_ids_list = await get_all_steam_ids_from_db(
-            telegram_id=telegram_id, session=session
-        )
     await message.answer(
         "Привязанные Steam ID:",
         reply_markup=get_steams_menu(steam_id_list=steam_ids_list),
@@ -84,10 +78,6 @@ async def add_steam_id(
     storage: RedisStorage,
 ):
     """Adding a steam id"""
-    telegram_id = message.from_user.id
-    user_data = await redis_convert_to_dict(
-        telegram_id=f"{telegram_id}", storage=storage
-    )
     try:
         steam_id = get_steam_id(message.text)
         steam_name = get_steam_name(steam_id)
@@ -95,15 +85,12 @@ async def add_steam_id(
         await message.answer(text="Некорректный Stream id, попробуйте еще раз")
 
     else:
-        if user_data:
-            steam_ids = user_data["steam_ids"]
-            print(steam_ids)
-            check_steam_id = message.text in steam_ids
-            print(check_steam_id)
-        else:
-            check_steam_id = await get_steamid_from_db(
-                steam_id=steam_id, session=session
-            )
+        check_steam_id = await check_steam_id_exist_in_redis_or_db(
+            session=session,
+            steam_id=steam_id,
+            storage=storage,
+            telegram_id=message.from_user.id,
+        )
         if check_steam_id:
             await message.answer(text="Этот Steam id уже в вашем списке")
         else:

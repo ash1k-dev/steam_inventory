@@ -283,8 +283,6 @@ async def get_items_changes(session, user_telegram_id):
             name, item_cost, first_item_cost, _, _ = item
             if item_cost > first_item_cost * float(INCREASE_FACTOR):
                 items[f"{steam_id.steam_id}"].append((name, item_cost, first_item_cost))
-        print(items[f"{steam_id.steam_id}"])
-    print(items)
     return items
 
 
@@ -324,6 +322,64 @@ async def get_changes(user_telegram_id, session):
         session=session,
     )
     return get_tracking_items, get_tracking_games, items_changes
+
+
+async def get_items_list_from_redis_or_db(
+    callback_data, session, telegram_id, storage, order
+):
+    user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
+    if user_data:
+        all_items = []
+        items = user_data["steam_ids"][f"{callback_data.steam_id}"]["items"]
+        items = [items_data for items_data in items.values()]
+        items = sorted(items, key=lambda x: x[order], reverse=True)
+        for item in items[: callback_data.limit]:
+            name = item["name"]
+            cost = item["cost"]
+            first_cost = item["first_cost"]
+            amount = item["amount"]
+            difference = item["difference"]
+            all_items.append((name, cost, first_cost, amount, difference))
+    else:
+        all_items = await get_amount_and_items_info_from_db(
+            steam_id=callback_data.steam_id,
+            limit=callback_data.limit,
+            order=order,
+            session=session,
+        )
+    return all_items
+
+
+async def get_items_info_from_redis_or_db(session, callback_data, telegram_id, storage):
+    user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
+    if user_data:
+        items_info = user_data["steam_ids"][f"{callback_data.steam_id}"]["items_info"]
+        total_cost = items_info["total_cost"]
+        first_total_cost = items_info["first_total_cost"]
+        total_amount = items_info["total_amount"]
+        max_cost = items_info["max_cost"]
+        min_cost = items_info["min_cost"]
+        difference_total_cost = total_cost - first_total_cost
+    else:
+        general_items_info = await get_items_info_from_db(
+            steam_id=callback_data.steam_id, session=session
+        )
+        (
+            total_cost,
+            first_total_cost,
+            total_amount,
+            max_cost,
+            min_cost,
+        ) = general_items_info[0]
+        difference_total_cost = total_cost - first_total_cost
+    return (
+        difference_total_cost,
+        first_total_cost,
+        max_cost,
+        min_cost,
+        total_amount,
+        total_cost,
+    )
 
 
 async def get_games_info_from_redis_or_db(
@@ -454,6 +510,18 @@ async def get_tracking_item_from_redis_or_db(
     return item, name
 
 
+async def get_steam_ids_from_redis_or_db(session, storage, telegram_id):
+    user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
+    if user_data:
+        steam_ids_list = user_data["steam_ids"]["ids"]
+        steam_ids_list = [(steam_id, name) for steam_id, name in steam_ids_list.items()]
+    else:
+        steam_ids_list = await get_all_steam_ids_from_db(
+            telegram_id=telegram_id, session=session
+        )
+    return steam_ids_list
+
+
 async def check_game_exist_in_redis_or_db(telegram_id, game_id, session, storage):
     user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
     if user_data:
@@ -476,3 +544,13 @@ async def check_item_exist_in_redis_or_db(telegram_id, item_id, session, storage
             item_id=int(item_id), session=session
         )
     return check_game
+
+
+async def check_steam_id_exist_in_redis_or_db(session, steam_id, storage, telegram_id):
+    user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
+    if user_data:
+        steam_ids = user_data["steam_ids"]
+        check_steam_id = str(steam_id) in steam_ids
+    else:
+        check_steam_id = await get_steamid_from_db(steam_id=steam_id, session=session)
+    return check_steam_id
