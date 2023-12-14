@@ -5,7 +5,6 @@ from aiogram.utils import markdown
 
 
 from config import ITEMS_ON_PAGE
-from redis_data_convert import redis_convert_to_dict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.bot.keyboards.inline.callback_factory import GamesCallbackFactory
@@ -14,7 +13,10 @@ from core.bot.keyboards.inline.inline import (
     get_games_menu,
     get_pagination,
 )
-from core.db.methods.request import get_games_from_db, get_games_info_from_db
+from core.db.methods.request import (
+    get_games_list_from_redis_or_db,
+    get_games_info_from_redis_or_db,
+)
 
 router = Router()
 
@@ -26,13 +28,16 @@ async def get_games(
     session: AsyncSession,
     storage: RedisStorage,
 ):
-    user_data = await redis_convert_to_dict(
-        telegram_id=f"{callback.from_user.id}", storage=storage
-    )
-    steam_id = int(callback_data.steam_id)
     if callback_data.action == "info" or callback_data.action == "back":
-        number_of_games, time_in_games, total_cost = await get_games_info(
-            session, steam_id, user_data
+        (
+            number_of_games,
+            time_in_games,
+            total_cost,
+        ) = await get_games_info_from_redis_or_db(
+            callback_data=callback_data,
+            telegram_id=callback.from_user.id,
+            session=session,
+            storage=storage,
         )
         await callback.message.answer(
             text=f"{markdown.hbold('Аккаунт ' + callback_data.steam_name)}\n"
@@ -45,18 +50,30 @@ async def get_games(
         )
     else:
         if callback_data.action == "time":
-            all_games = await get_games_list(
-                callback_data, session, steam_id, user_data, order="time_in_game"
+            games_list = await get_games_list_from_redis_or_db(
+                callback_data=callback_data,
+                telegram_id=callback.from_user.id,
+                storage=storage,
+                session=session,
+                order="time_in_game",
             )
         elif callback_data.action == "cost":
-            all_games = await get_games_list(
-                callback_data, session, steam_id, user_data, order="cost"
+            games_list = await get_games_list_from_redis_or_db(
+                callback_data=callback_data,
+                telegram_id=callback.from_user.id,
+                storage=storage,
+                session=session,
+                order="cost",
             )
         elif callback_data.action == "all":
-            all_games = await get_games_list(
-                callback_data, session, steam_id, user_data, order="cost"
+            games_list = await get_games_list_from_redis_or_db(
+                callback_data=callback_data,
+                telegram_id=callback.from_user.id,
+                storage=storage,
+                session=session,
+                order="cost",
             )
-        games_list, grouped_games_list = await get_games_text(all_games)
+        games_list, grouped_games_list = await get_games_text(games_list)
         if len(games_list) <= ITEMS_ON_PAGE:
             await callback.message.answer(
                 text=f"{''.join(games_list)}",
@@ -98,48 +115,3 @@ async def get_games_text(all_games) -> tuple[list, list]:
     for i in range(0, len(games_list), ITEMS_ON_PAGE):
         grouped_games_list.append("".join(games_list[i : i + ITEMS_ON_PAGE]))
     return games_list, grouped_games_list
-
-
-async def get_games_info(
-    session: AsyncSession, steam_id: int, user_data: dict
-) -> tuple:
-    if user_data:
-        games_info = user_data["steam_ids"][f"{steam_id}"]["games_info"]
-        number_of_games = games_info["number_of_games"]
-        total_cost = games_info["total_cost"]
-        time_in_games = games_info["time_in_games"]
-    else:
-        general_games_info = await get_games_info_from_db(
-            steam_id=steam_id, session=session
-        )
-        number_of_games, total_cost, time_in_games = general_games_info[0]
-    return number_of_games, time_in_games, total_cost
-
-
-async def get_games_list(
-    callback_data: GamesCallbackFactory,
-    session: AsyncSession,
-    steam_id: int,
-    user_data: dict,
-    order: str,
-) -> list[tuple]:
-    if user_data:
-        all_games = []
-        games = user_data["steam_ids"][f"{steam_id}"]["games"]
-        games = [game_data for game_data in games.values()]
-        games = sorted(games, key=lambda x: x[order], reverse=True)
-        for game in games[: callback_data.limit]:
-            item_id = game["item_id"]
-            game_name = game["name"]
-            first_cost = game["first_cost"]
-            cost = game["cost"]
-            time_in_game = game["time_in_game"]
-            all_games.append((item_id, game_name, first_cost, time_in_game, cost))
-    else:
-        all_games = await get_games_from_db(
-            steam_id=callback_data.steam_id,
-            limit=callback_data.limit,
-            order=callback_data.order,
-            session=session,
-        )
-    return all_games

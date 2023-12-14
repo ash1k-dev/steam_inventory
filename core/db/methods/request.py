@@ -1,7 +1,9 @@
+from aiogram.fsm.storage.redis import RedisStorage
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import DEPRECIATION_FACTOR, INCREASE_FACTOR
+from core.bot.keyboards.inline.callback_factory import GamesCallbackFactory
 from core.db.models.models import (
     Game,
     GameInAccount,
@@ -13,6 +15,7 @@ from core.db.models.models import (
     Steam,
     User,
 )
+from redis_data_convert import redis_convert_to_dict
 
 
 async def get_user_from_db(telegram_id: int, session: AsyncSession):
@@ -321,3 +324,155 @@ async def get_changes(user_telegram_id, session):
         session=session,
     )
     return get_tracking_items, get_tracking_games, items_changes
+
+
+async def get_games_info_from_redis_or_db(
+    callback_data: GamesCallbackFactory,
+    session: AsyncSession,
+    telegram_id: int,
+    storage: RedisStorage,
+) -> tuple:
+    user_data = await redis_convert_to_dict(
+        telegram_id=f"{telegram_id}", storage=storage
+    )
+    if user_data:
+        games_info = user_data["steam_ids"][f"{callback_data.steam_id}"]["games_info"]
+        number_of_games = games_info["number_of_games"]
+        total_cost = games_info["total_cost"]
+        time_in_games = games_info["time_in_games"]
+    else:
+        general_games_info = await get_games_info_from_db(
+            steam_id=callback_data.steam_id, session=session
+        )
+        number_of_games, total_cost, time_in_games = general_games_info[0]
+    return number_of_games, time_in_games, total_cost
+
+
+async def get_games_list_from_redis_or_db(
+    callback_data: GamesCallbackFactory,
+    session: AsyncSession,
+    telegram_id: int,
+    storage: RedisStorage,
+    order: str,
+) -> list[tuple]:
+    user_data = await redis_convert_to_dict(
+        telegram_id=f"{telegram_id}", storage=storage
+    )
+    if user_data:
+        games_list = []
+        games = user_data["steam_ids"][f"{callback_data.steam_id}"]["games"]
+        games = [game_data for game_data in games.values()]
+        games = sorted(games, key=lambda x: x[order], reverse=True)
+        for game in games[: callback_data.limit]:
+            item_id = game["item_id"]
+            game_name = game["name"]
+            first_cost = game["first_cost"]
+            cost = game["cost"]
+            time_in_game = game["time_in_game"]
+            games_list.append((item_id, game_name, first_cost, time_in_game, cost))
+    else:
+        games_list = await get_games_from_db(
+            steam_id=callback_data.steam_id,
+            limit=callback_data.limit,
+            order=callback_data.order,
+            session=session,
+        )
+    return games_list
+
+
+async def get_tracking_items_list_from_redis_or_db(session, telegram_id, storage):
+    user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
+    if user_data:
+        tracking_items = user_data["tracking_items"]
+        tracking_items_list = []
+        for item_id, item_data in tracking_items.items():
+            tracking_items_list.append(
+                (
+                    item_data["name"],
+                    item_id,
+                    item_data["first_cost"],
+                    item_data["cost"],
+                )
+            )
+    else:
+        tracking_items_list = await get_all_tracking_items_from_db(
+            telegram_id=telegram_id, session=session
+        )
+    return tracking_items_list
+
+
+async def get_tracking_games_list_from_redis_or_db(session, telegram_id, storage):
+    user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
+    if user_data:
+        tracking_items = user_data["tracking_games"]
+        tracking_games_list = []
+        for game_id, game_data in tracking_items.items():
+            tracking_games_list.append(
+                (
+                    game_data["name"],
+                    game_id,
+                    game_data["first_cost"],
+                    game_data["cost"],
+                )
+            )
+    else:
+        tracking_games_list = await get_all_tracking_games_from_db(
+            telegram_id=telegram_id, session=session
+        )
+    return tracking_games_list
+
+
+async def get_tracking_game_from_redis_or_db(
+    telegram_id, callback_data, session, storage
+):
+    user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
+    if user_data:
+        game = user_data["tracking_games"][str(callback_data.game_id)]
+    else:
+        tracking_game_data = await get_tracking_game_data_from_db(
+            game_id=callback_data.game_id, session=session
+        )
+        name, first_cost, cost = tracking_game_data[0]
+        game = {"name": name, "first_cost": first_cost, "cost": cost}
+    return game
+
+
+async def get_tracking_item_from_redis_or_db(
+    telegram_id, callback_data, session, storage
+):
+    user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
+    if user_data:
+        item = user_data["tracking_items"][str(callback_data.item_id)]
+        name = item["name"]
+    else:
+        tracking_item_data = await get_tracking_item_data_from_db(
+            item_id=callback_data.item_id, session=session
+        )
+        name, first_cost, cost = tracking_item_data[0]
+        item = {"name": name, "first_cost": first_cost, "cost": cost}
+        name = item["name"]
+    return item, name
+
+
+async def check_game_exist_in_redis_or_db(telegram_id, game_id, session, storage):
+    user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
+    if user_data:
+        tracking_games = user_data["tracking_games"]
+        check_game = game_id in tracking_games
+    else:
+        check_game = await get_tracking_game_from_db(
+            game_id=int(game_id), session=session
+        )
+    return check_game
+
+
+async def check_item_exist_in_redis_or_db(telegram_id, item_id, session, storage):
+    user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
+    if user_data:
+        tracking_items = user_data["tracking_items"]
+        check_game = item_id in tracking_items
+    else:
+        check_game = await get_tracking_item_from_db(
+            item_id=int(item_id), session=session
+        )
+    return check_game

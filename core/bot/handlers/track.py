@@ -25,14 +25,13 @@ from core.bot.utils.apsheduler import update_redis
 from core.db.methods.create import create_game_track, create_item_track
 from core.db.methods.delete import delete_tracking_game, delete_tracking_item
 from core.db.methods.request import (
-    get_all_tracking_games_from_db,
-    get_all_tracking_items_from_db,
-    get_tracking_game_data_from_db,
-    get_tracking_game_from_db,
-    get_tracking_item_data_from_db,
-    get_tracking_item_from_db,
+    get_tracking_games_list_from_redis_or_db,
+    get_tracking_items_list_from_redis_or_db,
+    get_tracking_game_from_redis_or_db,
+    check_game_exist_in_redis_or_db,
+    get_tracking_item_from_redis_or_db,
+    check_item_exist_in_redis_or_db,
 )
-from core.db.redis_data_convert import redis_convert_to_dict
 from core.inventory.steam import get_game_name, get_item_market_hash_name
 
 router = Router()
@@ -54,71 +53,26 @@ class AddItemTrack(StatesGroup):
 async def get_tracking_items(
     message: Message, session: AsyncSession, storage: RedisStorage
 ):
-    telegram_id = message.from_user.id
-    user_data = await redis_convert_to_dict(
-        telegram_id=f"{telegram_id}", storage=storage
+    tracking_items_list = await get_tracking_items_list_from_redis_or_db(
+        session=session, telegram_id=message.from_user.id, storage=storage
     )
-    tracking_items_list = await get_tracking_items_list(session, telegram_id, user_data)
-
     await message.answer(
         "Отслеживаемые предметы:",
         reply_markup=get_tracking_items_menu(tracking_items_list=tracking_items_list),
     )
 
 
-async def get_tracking_items_list(session, telegram_id, user_data):
-    if user_data:
-        tracking_items = user_data["tracking_items"]
-        tracking_items_list = []
-        for item_id, item_data in tracking_items.items():
-            tracking_items_list.append(
-                (
-                    item_data["name"],
-                    item_id,
-                    item_data["first_cost"],
-                    item_data["cost"],
-                )
-            )
-    else:
-        tracking_items_list = await get_all_tracking_items_from_db(
-            telegram_id=telegram_id, session=session
-        )
-    return tracking_items_list
-
-
 @router.message(F.text == "Игры")
 async def get_tracking_games(
     message: Message, session: AsyncSession, storage: RedisStorage
 ):
-    telegram_id = message.from_user.id
-    user_data = await redis_convert_to_dict(
-        telegram_id=f"{telegram_id}", storage=storage
+    tracking_games_list = await get_tracking_games_list_from_redis_or_db(
+        session=session, telegram_id=message.from_user.id, storage=storage
     )
-    tracking_games_list = await get_tracking_games_list(session, telegram_id, user_data)
     await message.answer(
         "Отслеживаемые игры:",
         reply_markup=get_tracking_games_menu(tracking_games_list=tracking_games_list),
     )
-
-
-async def get_tracking_games_list(session, telegram_id, user_data):
-    if user_data:
-        tracking_items = user_data["tracking_games"]
-        tracking_games_list = []
-        for game_id, game_data in tracking_items.items():
-            tracking_games_list.append(
-                (
-                    game_data["name"],
-                    game_id,
-                    game_data["first_cost"],
-                    game_data["cost"],
-                )
-            )
-    else:
-        tracking_games_list = await get_all_tracking_games_from_db(
-            telegram_id=telegram_id, session=session
-        )
-    return tracking_games_list
 
 
 @router.callback_query(GamesTrackCallbackFactory.filter())
@@ -130,17 +84,12 @@ async def get_tracking_games(
     storage: RedisStorage,
 ):
     if callback_data.action == "tracking_game":
-        user_data = await redis_convert_to_dict(
-            telegram_id=callback.from_user.id, storage=storage
+        game = await get_tracking_game_from_redis_or_db(
+            telegram_id=callback.from_user.id,
+            callback_data=callback_data,
+            session=session,
+            storage=storage,
         )
-        if user_data:
-            game = user_data["tracking_games"][str(callback_data.game_id)]
-        else:
-            tracking_game_data = await get_tracking_game_data_from_db(
-                game_id=callback_data.game_id, session=session
-            )
-            name, first_cost, cost = tracking_game_data[0]
-            game = {"name": name, "first_cost": first_cost, "cost": cost}
         await callback.message.answer(
             text=f"{markdown.hbold(game['name'])}\n"
             f"Первоначальная стоимость: {game['first_cost']}\n"
@@ -192,22 +141,19 @@ async def add_tracking_games(
     message: Message, session: AsyncSession, storage: RedisStorage
 ):
     """Adding a tracking game"""
-    user_data = await redis_convert_to_dict(
-        telegram_id=message.from_user.id, storage=storage
-    )
+
     try:
         game = get_game_name(int(message.text))
     except Exception:
         await message.answer(text="Некорректный Id игры, попробуйте еще раз")
 
     else:
-        if user_data:
-            tracking_games = user_data["tracking_games"]
-            check_game = message.text in tracking_games
-        else:
-            check_game = await get_tracking_game_from_db(
-                game_id=int(message.text), session=session
-            )
+        check_game = await check_game_exist_in_redis_or_db(
+            telegram_id=message.from_user.id,
+            game_id=message.text,
+            session=session,
+            storage=storage,
+        )
         if check_game:
             await message.answer(text=f"Игра '{game}' уже в вашем списке")
         else:
@@ -227,26 +173,19 @@ async def get_tracking_item(
     storage: RedisStorage,
 ):
     if callback_data.action == "tracking_item":
-        user_data = await redis_convert_to_dict(
-            telegram_id=callback.from_user.id, storage=storage
+        item, name = await get_tracking_item_from_redis_or_db(
+            telegram_id=callback.from_user.id,
+            callback_data=callback_data,
+            session=session,
+            storage=storage,
         )
-        if user_data:
-            item = user_data["tracking_items"][str(callback_data.item_id)]
-            name = item["name"]
-        else:
-            tracking_item_data = await get_tracking_item_data_from_db(
-                item_id=callback_data.item_id, session=session
-            )
-            name, first_cost, cost = tracking_item_data[0]
-            item = {"name": name, "first_cost": first_cost, "cost": cost}
-            name = item["name"]
         await callback.message.answer(
             text=f"{markdown.hbold(item['name'])}\n"
             f"Первоначальная стоимость: {item['first_cost']}\n"
             f"Актуальная стоимость: {item['cost']}\n"
             f"Изменение: {item['first_cost'] - item['cost']}"
             f"({int((item['first_cost'] - item['cost']) / item['first_cost'] * 100)}%)\n"
-            f"Сссылка:  {markdown.hlink('SteamLink', f'https://steamcommunity.com/market/listings/730/{quote(name)}')}",
+            f"Сссылка: {markdown.hlink('SteamLink', f'https://steamcommunity.com/market/listings/730/{quote(name)}')}",
             reply_markup=get_control_menu_tracking_items(
                 item_id=callback_data.item_id, item_name=item["name"]
             ),
@@ -295,22 +234,19 @@ async def add_tracking_item(
     message: Message, session: AsyncSession, storage: RedisStorage
 ):
     """Adding a tracking game"""
-    user_data = await redis_convert_to_dict(
-        telegram_id=message.from_user.id, storage=storage
-    )
+
     try:
         item = get_item_market_hash_name(int(message.text))
     except Exception:
         await message.answer(text="Некорректный Id предмета, попробуйте еще раз")
 
     else:
-        if user_data:
-            tracking_items = user_data["tracking_items"]
-            check_game = message.text in tracking_items
-        else:
-            check_game = await get_tracking_item_from_db(
-                item_id=int(message.text), session=session
-            )
+        check_game = await check_item_exist_in_redis_or_db(
+            telegram_id=message.from_user.id,
+            item_id=message.text,
+            session=session,
+            storage=storage,
+        )
         if check_game:
             await message.answer(text=f"Предмет '{item}' уже в Вашем списке")
         else:
