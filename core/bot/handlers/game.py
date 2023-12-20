@@ -50,7 +50,7 @@ async def get_games(
         )
     else:
         if callback_data.action == "time":
-            games_list = await get_games_list_from_redis_or_db(
+            games = await get_games_list_from_redis_or_db(
                 callback_data=callback_data,
                 telegram_id=callback.from_user.id,
                 storage=storage,
@@ -58,7 +58,7 @@ async def get_games(
                 order="time_in_game",
             )
         elif callback_data.action == "cost":
-            games_list = await get_games_list_from_redis_or_db(
+            games = await get_games_list_from_redis_or_db(
                 callback_data=callback_data,
                 telegram_id=callback.from_user.id,
                 storage=storage,
@@ -66,14 +66,14 @@ async def get_games(
                 order="cost",
             )
         elif callback_data.action == "all":
-            games_list = await get_games_list_from_redis_or_db(
+            games = await get_games_list_from_redis_or_db(
                 callback_data=callback_data,
                 telegram_id=callback.from_user.id,
                 storage=storage,
                 session=session,
                 order="cost",
             )
-        games_list, grouped_games_list = await get_games_text(games_list)
+        games_list, grouped_games_list = await get_games_text(games)
         if len(games_list) <= ITEMS_ON_PAGE:
             await callback.message.answer(
                 text=f"{''.join(games_list)}",
@@ -100,10 +100,10 @@ async def get_games(
     await callback.answer()
 
 
-async def get_games_text(all_games) -> tuple[list, list]:
+async def get_games_text(games) -> tuple[list, list]:
     games_list = []
     grouped_games_list = []
-    for game_id, game_name, first_game_cost, time_in_game, game_cost in all_games:
+    for game_id, game_name, first_game_cost, time_in_game, game_cost in games:
         games_list.append(
             f"{markdown.hbold(game_name)}\n"
             f"Количество часов: {time_in_game}\n"

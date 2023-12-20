@@ -1,31 +1,29 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.db.methods.request import (
+    get_game_from_db,
+    get_games_list_from_db,
+    get_inventorys_id_from_db,
+    get_item_from_db,
+    get_items_list_from_db,
+    get_steamid_from_db,
+)
 from core.db.models.models import (
     Game,
     GameInAccount,
+    GameTrack,
+    Inventory,
+    Item,
+    ItemInInventory,
+    ItemTrack,
     Steam,
     User,
-    Inventory,
-    ItemInInventory,
-    Item,
-    GameTrack,
-    ItemTrack,
-)
-
-from core.db.methods.request import (
-    get_user_from_db,
-    get_items_list_from_db,
-    get_games_list_from_db,
-    get_steamid_from_db,
-    get_inventorys_id_from_db,
-    get_game_from_db,
-    get_item_from_db,
 )
 from core.inventory.steam import (
     get_all_games_info,
-    get_inventory_info_test_data,
     get_game_cost,
     get_game_name,
+    get_inventory_info_test_data,
     get_item_cost,
     get_item_market_hash_name,
 )
@@ -163,7 +161,7 @@ async def create_game_track(
     first_game_cost = get_game_cost(game_id=game_id)
     name = get_game_name(game_id=int(game_id))
     check_game = await get_game_from_db(game_id=game_id, session=session)
-    if check_game == None:
+    if check_game is None:
         await create_game(
             game_name=name, game_id=game_id, game_cost=first_game_cost, session=session
         )
@@ -189,7 +187,7 @@ async def create_item_track(
     market_hash_name = get_item_market_hash_name(item_id=item_id)
     first_item_cost = get_item_cost(name=market_hash_name)
     check_item = await get_item_from_db(item_id=item_id, session=session)
-    if check_item == None:
+    if check_item is None:
         await create_item(
             name=market_hash_name,
             item_id=item_id,

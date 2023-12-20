@@ -18,6 +18,7 @@ async def start():
     """"""
     logging.basicConfig(
         level=logging.INFO,
+        # filename="inventory_log.log",
         format="%(asctime)s - [%(levelname)s] - %(name)s - "
         "(%(filename)s).%(funcName)s(%(lineno)d) - %(message)s",
     )

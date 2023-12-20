@@ -1,7 +1,6 @@
 from random import randrange
 from time import sleep
 
-import redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from core.db.methods.request import (
