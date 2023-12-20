@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer, BigInteger, String
 from sqlalchemy.orm import DeclarativeBase, declared_attr, relationship
 
 

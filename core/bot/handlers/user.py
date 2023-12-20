@@ -4,6 +4,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.storage.redis import RedisStorage
 from methods.update import update_redis
+from redis_data_convert import redis_convert_to_dict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -18,6 +19,7 @@ from core.bot.utils.admin_notification import recording_steam_data_error
 from core.db.methods.create import add_initial_data, create_user
 from core.db.methods.delete import delete_steam_id
 from core.db.methods.request import (
+    get_all_steam_ids_from_db,
     get_steamid_from_db,
     get_user_from_db,
     check_steam_id_exist_in_redis_or_db,

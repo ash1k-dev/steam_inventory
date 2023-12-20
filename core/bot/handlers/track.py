@@ -105,7 +105,7 @@ async def get_tracking_games(
         await update_redis(
             user_telegram_id=callback.from_user.id, session=session, storage=storage
         )
-        await callback.message.answer(text="Игра успешно удалена")
+        await callback.message.answer(text=f"Игра успешно удалена")
         await callback.answer()
     elif callback_data.action == "add_tracking_game":
         await callback.message.answer(

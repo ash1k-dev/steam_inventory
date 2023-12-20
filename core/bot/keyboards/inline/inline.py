@@ -1,24 +1,24 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardMarkup
 
 from core.bot.keyboards.inline.callback_factory import (
+    SteamidCallbackFactory,
+    ItemsCallbackFactory,
     GamesCallbackFactory,
     GamesTrackCallbackFactory,
-    ItemsCallbackFactory,
     ItemsTrackCallbackFactory,
-    SteamidCallbackFactory,
 )
 
 
 def get_steams_menu(steam_id_list: list) -> InlineKeyboardMarkup:
     """Keyboard to steams menu"""
     keyboard_builder = InlineKeyboardBuilder()
-    for steam_id, name in steam_id_list:
+    for steam_id in steam_id_list:
         keyboard_builder.button(
-            text=name,
+            text=steam_id.name,
             callback_data=SteamidCallbackFactory(
                 action="steamid",
-                steam_name=name,
-                steam_id=steam_id,
+                steam_name=steam_id.name,
+                steam_id=steam_id.steam_id,
             ),
         )
     keyboard_builder.button(
@@ -150,8 +150,6 @@ def get_items_menu(steam_id: int, steam_name: str) -> InlineKeyboardMarkup:
             action="top_cost",
             steam_name=steam_name,
             steam_id=steam_id,
-            limit=5,
-            order="cost",
             page=0,
             pages_amount=5,
         ),
@@ -162,8 +160,6 @@ def get_items_menu(steam_id: int, steam_name: str) -> InlineKeyboardMarkup:
             action="top_gain",
             steam_name=steam_name,
             steam_id=steam_id,
-            limit=5,
-            order="difference",
             page=0,
             pages_amount=5,
         ),
@@ -174,8 +170,6 @@ def get_items_menu(steam_id: int, steam_name: str) -> InlineKeyboardMarkup:
             action="all",
             steam_name=steam_name,
             steam_id=steam_id,
-            limit=10000,
-            order="all",
             page=0,
             pages_amount=10,
         ),
@@ -303,11 +297,16 @@ def get_items_back_menu(steam_id, steam_name) -> InlineKeyboardMarkup:
 def get_tracking_games_menu(tracking_games_list: list) -> InlineKeyboardMarkup:
     """Keyboard to steams menu"""
     keyboard_builder = InlineKeyboardBuilder()
-    for name, game_id, first_game_cost, game_cost in tracking_games_list:
+    for user_id, name, game_id, first_game_cost, game_cost in tracking_games_list:
         keyboard_builder.button(
             text=name,
             callback_data=GamesTrackCallbackFactory(
                 action="tracking_game",
+                # tracking_game_id=game_id,
+                # name=name,
+                # first_game_cost=first_game_cost,
+                # game_cost=game_cost,
+                # user_id=user_id,
                 game_id=game_id,
             ),
         )
@@ -336,13 +335,14 @@ def get_confirm_tracking_game_menu(game_id) -> InlineKeyboardMarkup:
     return keyboard_builder.as_markup()
 
 
-def get_control_menu_tracking_game(game_id: int) -> InlineKeyboardMarkup:
+def get_control_menu_tracking_game(game_id: int, game_name) -> InlineKeyboardMarkup:
     """Keyboard to delete a steam id"""
     keyboard_builder = InlineKeyboardBuilder()
     keyboard_builder.button(
         text="Удалить",
         callback_data=GamesTrackCallbackFactory(
             action="delete",
+            name=game_name,
             game_id=game_id,
         ),
     )
@@ -385,12 +385,16 @@ def get_control_menu_tracking_items(item_id: int, item_name) -> InlineKeyboardMa
 def get_tracking_items_menu(tracking_items_list: list) -> InlineKeyboardMarkup:
     """Keyboard to steams menu"""
     keyboard_builder = InlineKeyboardBuilder()
-    for name, item_id, first_item_cost, item_cost in tracking_items_list:
+    for name, first_item_cost, user_id, item_id, item_cost in tracking_items_list:
         keyboard_builder.button(
-            text=f'{name}',
+            text=name,
             callback_data=ItemsTrackCallbackFactory(
                 action="tracking_item",
+                # name=name,
+                # first_item_cost=first_item_cost,
+                # user_id=user_id,
                 item_id=item_id,
+                # item_cost=item_cost,
             ),
         )
     keyboard_builder.button(
