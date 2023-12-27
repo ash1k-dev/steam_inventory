@@ -5,9 +5,10 @@ from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import CallbackQuery
 from aiogram.utils import markdown
 
-from config import ITEMS_ON_PAGE
+from config import ITEMS_ON_PAGE, URL_FOR_STEAM_ITEM
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.bot.handlers.templates import TEXT_ITEMS_INFO, TEXT_ITEMS
 from core.bot.keyboards.inline.callback_factory import ItemsCallbackFactory
 from core.bot.keyboards.inline.inline import (
     get_items_back_menu,
@@ -44,14 +45,18 @@ async def get_items(
             storage=storage,
         )
         await callback.message.answer(
-            text=f"{markdown.hbold('Аккаунт ' + callback_data.steam_name)}\n"
-            f"Количество предметов: {total_amount}\n"
-            f"Общая стоимость предметов: {total_cost}руб.\n"
-            f"Первоначальная стоимость предметов: {first_total_cost}руб.\n"
-            f"Прирост стоимости: {difference_total_cost}руб."
-            f"({int((difference_total_cost/first_total_cost)*100)}%)\n"
-            f"Максимальная стоимость предмета: {max_cost} \n"
-            f"Минимальная стоимость предмета: {min_cost}",
+            text=TEXT_ITEMS_INFO.substitute(
+                steam_name=callback_data.steam_name,
+                total_amount=total_amount,
+                total_cost=total_cost,
+                first_total_cost=first_total_cost,
+                difference_total_cost=difference_total_cost,
+                difference_percents=int(
+                    (difference_total_cost / first_total_cost) * 100
+                ),
+                max_cost=max_cost,
+                min_cost=min_cost,
+            ),
             reply_markup=get_items_menu(
                 steam_id=callback_data.steam_id,
                 steam_name=callback_data.steam_name,
@@ -112,15 +117,19 @@ async def get_items(
 async def get_items_text(items):
     items_list = []
     grouped_items_list = []
-    for name, item_cost, first_cost, amount, diff in items:
-        if first_cost != 0:
+    for item_name, item_cost, first_item_cost, amount, difference in items:
+        if first_item_cost != 0:
             items_list.append(
-                f"{markdown.hbold(name)}\n"
-                f"Текущая стоимость: {item_cost}руб.\n"
-                f"Первоначальная стоимость: {first_cost}руб.\n"
-                f"Прирост стоимости: {diff}руб.({int(diff / first_cost * 100)}%)\n"
-                f"Количество предметов: {amount}\n"
-                f"Ссылка на торговую площадку:"
-                f" {markdown.hlink('SteamLink', f'https://steamcommunity.com/market/listings/730/{quote(name)}')}\n\n"
+                TEXT_ITEMS.substitute(
+                    item_name=item_name,
+                    item_cost=item_cost,
+                    first_item_cost=first_item_cost,
+                    difference=difference,
+                    difference_percents=int(difference / first_item_cost * 100),
+                    amount=amount,
+                    link=markdown.hlink(
+                        "SteamLink", f"{URL_FOR_STEAM_ITEM}/{quote(item_name)}"
+                    ),
+                )
             )
     return grouped_items_list, items_list

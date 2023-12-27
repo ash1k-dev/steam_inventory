@@ -1,8 +1,17 @@
+import logging
+
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.storage.redis import RedisStorage
+
+from core.bot.handlers.templates import (
+    TEXT_ADD_STEAM_PROCESS,
+    TEXT_ADD_STEAM_FINAL,
+    TEXT_STEAM_INFO,
+    TEXT_STEAM_DELETE,
+)
 from methods.update import update_redis
 from redis_data_convert import redis_convert_to_dict
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,14 +40,12 @@ router = Router()
 
 
 class AddSteam(StatesGroup):
-    """State to user"""
 
     added_steam_id = State()
 
 
 @router.message(F.text.in_({"/start", "Назад"}))
 async def get_start(message: Message, session: AsyncSession):
-    """Welcome and registration a new user"""
     telegram_id = message.from_user.id
     result = await get_user_from_db(telegram_id=telegram_id, session=session)
     if result is None:
@@ -77,11 +84,11 @@ async def add_steam_id(
     state: FSMContext,
     storage: RedisStorage,
 ):
-    """Adding a steam id"""
     try:
         steam_id = get_steam_id(message.text)
         steam_name = get_steam_name(steam_id)
-    except Exception:
+    except Exception as error:
+        # logging.error(f"Сбой в работе программы: {error}")
         await message.answer(text="Некорректный Stream id, попробуйте еще раз")
 
     else:
@@ -95,10 +102,9 @@ async def add_steam_id(
             await message.answer(text="Этот Steam id уже в вашем списке")
         else:
             await message.answer(
-                f"Происходит добавление steam id '{steam_id}'"
-                f" с именем '{steam_name}'.\n"
-                "Обработка данных займет какое-то время и зависит"
-                " от количества предметов и игр на Вашем аккаунте"
+                TEXT_ADD_STEAM_PROCESS.substitute(
+                    steam_id=steam_id, steam_name=steam_name
+                )
             )
             try:
                 await add_initial_data(
@@ -113,8 +119,9 @@ async def add_steam_id(
                     storage=storage,
                 )
                 await message.answer(
-                    f"Для Steam id '{steam_id}' с именем '{steam_name}'"
-                    " данные добавлены"
+                    TEXT_ADD_STEAM_FINAL.substitute(
+                        steam_id=steam_id, steam_name=steam_name
+                    )
                 )
             except Exception as e:
                 check_earlier_error = await storage.redis.get(name=str(steam_id))
@@ -169,14 +176,16 @@ async def get_steam(
             user_telegram_id=callback.from_user.id, session=session, storage=storage
         )
         await callback.message.answer(
-            text=f"Steam id {callback_data.steam_id} c именем"
-            f" '{callback_data.steam_name}' успешно удален"
+            TEXT_STEAM_DELETE.substitute(
+                steam_id=callback_data.steam_id, steam_name=callback_data.steam_name
+            )
         )
         await callback.answer()
     elif callback_data.action == "steamid":
         await callback.message.answer(
-            text=f"Имя в профиле: {callback_data.steam_name} \n"
-            f"Steam id: {callback_data.steam_id}",
+            text=TEXT_STEAM_INFO.substitute(
+                steam_id=callback_data.steam_id, steam_name=callback_data.steam_name
+            ),
             reply_markup=get_control_menu(
                 callback_data.steam_name, callback_data.steam_id
             ),

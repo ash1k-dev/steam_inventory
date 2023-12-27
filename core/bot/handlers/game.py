@@ -4,7 +4,7 @@ from aiogram.types import CallbackQuery
 from aiogram.utils import markdown
 
 
-from config import ITEMS_ON_PAGE
+from config import ITEMS_ON_PAGE, URL_FOR_STEAM_GAME
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.bot.keyboards.inline.callback_factory import GamesCallbackFactory
@@ -16,6 +16,11 @@ from core.bot.keyboards.inline.inline import (
 from core.db.methods.request import (
     get_games_list_from_redis_or_db,
     get_games_info_from_redis_or_db,
+)
+
+from core.bot.handlers.templates import (
+    TEXT_GAMES,
+    TEXT_GAMES_INFO,
 )
 
 router = Router()
@@ -40,17 +45,19 @@ async def get_games(
             storage=storage,
         )
         await callback.message.answer(
-            text=f"{markdown.hbold('Аккаунт ' + callback_data.steam_name)}\n"
-            f"Количество: {number_of_games}\n"
-            f"Общая стоимость: {total_cost}\n"
-            f"Общее количество часов: {time_in_games}",
+            text=TEXT_GAMES_INFO.substitute(
+                steam_name=callback_data.steam_name,
+                number_of_games=number_of_games,
+                total_cost=total_cost,
+                time_in_games=time_in_games,
+            ),
             reply_markup=get_games_menu(
                 steam_id=callback_data.steam_id, steam_name=callback_data.steam_name
             ),
         )
     else:
         if callback_data.action == "time":
-            games_list = await get_games_list_from_redis_or_db(
+            games = await get_games_list_from_redis_or_db(
                 callback_data=callback_data,
                 telegram_id=callback.from_user.id,
                 storage=storage,
@@ -58,7 +65,7 @@ async def get_games(
                 order="time_in_game",
             )
         elif callback_data.action == "cost":
-            games_list = await get_games_list_from_redis_or_db(
+            games = await get_games_list_from_redis_or_db(
                 callback_data=callback_data,
                 telegram_id=callback.from_user.id,
                 storage=storage,
@@ -66,14 +73,14 @@ async def get_games(
                 order="cost",
             )
         elif callback_data.action == "all":
-            games_list = await get_games_list_from_redis_or_db(
+            games = await get_games_list_from_redis_or_db(
                 callback_data=callback_data,
                 telegram_id=callback.from_user.id,
                 storage=storage,
                 session=session,
                 order="cost",
             )
-        games_list, grouped_games_list = await get_games_text(games_list)
+        games_list, grouped_games_list = await get_games_text(games)
         if len(games_list) <= ITEMS_ON_PAGE:
             await callback.message.answer(
                 text=f"{''.join(games_list)}",
@@ -100,17 +107,18 @@ async def get_games(
     await callback.answer()
 
 
-async def get_games_text(all_games) -> tuple[list, list]:
+async def get_games_text(games) -> tuple[list, list]:
     games_list = []
     grouped_games_list = []
-    for game_id, game_name, first_game_cost, time_in_game, game_cost in all_games:
+    for game_id, game_name, first_game_cost, time_in_game, game_cost in games:
         games_list.append(
-            f"{markdown.hbold(game_name)}\n"
-            f"Количество часов: {time_in_game}\n"
-            f"Актуальная стоимость: {game_cost}\n"
-            f"Первоначальная стоимость: {first_game_cost}\n"
-            f"Ссылка на торговую площадку: "
-            f"{markdown.hlink('SteamLink', f'https://store.steampowered.com/app/{game_id}')}\n\n"
+            TEXT_GAMES.substitute(
+                game_name=game_name,
+                time_in_game=time_in_game,
+                game_cost=game_cost,
+                first_game_cost=first_game_cost,
+                link=markdown.hlink("SteamLink", f"{URL_FOR_STEAM_GAME}{game_id}"),
+            )
         )
     for i in range(0, len(games_list), ITEMS_ON_PAGE):
         grouped_games_list.append("".join(games_list[i : i + ITEMS_ON_PAGE]))

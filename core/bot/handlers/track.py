@@ -38,13 +38,11 @@ router = Router()
 
 
 class AddGameTrack(StatesGroup):
-    """State to tracking game"""
 
     added_game_track = State()
 
 
 class AddItemTrack(StatesGroup):
-    """State to tracking game"""
 
     added_item_track = State()
 
@@ -105,7 +103,7 @@ async def get_tracking_games(
         await update_redis(
             user_telegram_id=callback.from_user.id, session=session, storage=storage
         )
-        await callback.message.answer(text=f"Игра успешно удалена")
+        await callback.message.answer(text="Игра успешно удалена")
         await callback.answer()
     elif callback_data.action == "add_tracking_game":
         await callback.message.answer(
@@ -140,8 +138,6 @@ async def get_tracking_games(
 async def add_tracking_games(
     message: Message, session: AsyncSession, storage: RedisStorage
 ):
-    """Adding a tracking game"""
-
     try:
         game = get_game_name(int(message.text))
     except Exception:
@@ -186,9 +182,7 @@ async def get_tracking_item(
             f"Изменение: {item['first_cost'] - item['cost']}"
             f"({int((item['first_cost'] - item['cost']) / item['first_cost'] * 100)}%)\n"
             f"Сссылка: {markdown.hlink('SteamLink', f'https://steamcommunity.com/market/listings/730/{quote(name)}')}",
-            reply_markup=get_control_menu_tracking_items(
-                item_id=callback_data.item_id, item_name=item["name"]
-            ),
+            reply_markup=get_control_menu_tracking_items(item_id=callback_data.item_id),
         )
 
         await callback.answer()
@@ -233,8 +227,6 @@ async def get_tracking_item(
 async def add_tracking_item(
     message: Message, session: AsyncSession, storage: RedisStorage
 ):
-    """Adding a tracking game"""
-
     try:
         item = get_item_market_hash_name(int(message.text))
     except Exception:
