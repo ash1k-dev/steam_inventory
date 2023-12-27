@@ -30,6 +30,7 @@ async def get_items(
     session: AsyncSession,
     storage: RedisStorage,
 ):
+    action = {"all": "cost", "top_cost": "cost", "top_gain": "difference"}
     if callback_data.action == "info" or callback_data.action == "back":
         (
             difference_total_cost,
@@ -63,30 +64,13 @@ async def get_items(
             ),
         )
     else:
-        if callback_data.action == "all":
-            items = await get_items_list_from_redis_or_db(
-                callback_data=callback_data,
-                session=session,
-                telegram_id=callback.from_user.id,
-                storage=storage,
-                order="cost",
-            )
-        elif callback_data.action == "top_cost":
-            items = await get_items_list_from_redis_or_db(
-                callback_data=callback_data,
-                session=session,
-                telegram_id=callback.from_user.id,
-                storage=storage,
-                order="cost",
-            )
-        elif callback_data.action == "top_gain":
-            items = await get_items_list_from_redis_or_db(
-                callback_data=callback_data,
-                session=session,
-                telegram_id=callback.from_user.id,
-                storage=storage,
-                order="difference",
-            )
+        items = await get_items_list_from_redis_or_db(
+            callback_data=callback_data,
+            session=session,
+            telegram_id=callback.from_user.id,
+            storage=storage,
+            order=action.get(callback_data.action),
+        )
         grouped_items_list, items_list = await get_items_text(items)
         for i in range(0, len(items_list), ITEMS_ON_PAGE):
             grouped_items_list.append("".join(items_list[i : i + ITEMS_ON_PAGE]))

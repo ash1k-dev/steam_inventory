@@ -33,6 +33,7 @@ async def get_games(
     session: AsyncSession,
     storage: RedisStorage,
 ):
+    action = {"time": "time_in_game", "cost": "cost", "all": "cost"}
     if callback_data.action == "info" or callback_data.action == "back":
         (
             number_of_games,
@@ -56,30 +57,13 @@ async def get_games(
             ),
         )
     else:
-        if callback_data.action == "time":
-            games = await get_games_list_from_redis_or_db(
-                callback_data=callback_data,
-                telegram_id=callback.from_user.id,
-                storage=storage,
-                session=session,
-                order="time_in_game",
-            )
-        elif callback_data.action == "cost":
-            games = await get_games_list_from_redis_or_db(
-                callback_data=callback_data,
-                telegram_id=callback.from_user.id,
-                storage=storage,
-                session=session,
-                order="cost",
-            )
-        elif callback_data.action == "all":
-            games = await get_games_list_from_redis_or_db(
-                callback_data=callback_data,
-                telegram_id=callback.from_user.id,
-                storage=storage,
-                session=session,
-                order="cost",
-            )
+        games = await get_games_list_from_redis_or_db(
+            callback_data=callback_data,
+            telegram_id=callback.from_user.id,
+            storage=storage,
+            session=session,
+            order=action.get(callback_data.action),
+        )
         games_list, grouped_games_list = await get_games_text(games)
         if len(games_list) <= ITEMS_ON_PAGE:
             await callback.message.answer(
