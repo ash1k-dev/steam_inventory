@@ -4,11 +4,10 @@ from aiogram import Router
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import CallbackQuery
 from aiogram.utils import markdown
-
-from config import ITEMS_ON_PAGE, URL_FOR_STEAM_ITEM
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.bot.handlers.templates import TEXT_ITEMS_INFO, TEXT_ITEMS
+from config import ITEMS_ON_PAGE, URL_FOR_STEAM_ITEM
+from core.bot.handlers.templates import TEXT_ITEM, TEXT_ITEMS_INFO
 from core.bot.keyboards.inline.callback_factory import ItemsCallbackFactory
 from core.bot.keyboards.inline.inline import (
     get_items_back_menu,
@@ -30,7 +29,6 @@ async def get_items(
     session: AsyncSession,
     storage: RedisStorage,
 ):
-    action = {"all": "cost", "top_cost": "cost", "top_gain": "difference"}
     if callback_data.action == "info" or callback_data.action == "back":
         (
             difference_total_cost,
@@ -69,7 +67,6 @@ async def get_items(
             session=session,
             telegram_id=callback.from_user.id,
             storage=storage,
-            order=action.get(callback_data.action),
         )
         grouped_items_list, items_list = await get_items_text(items)
         for i in range(0, len(items_list), ITEMS_ON_PAGE):
@@ -87,12 +84,13 @@ async def get_items(
                 text=f"{grouped_items_list[callback_data.page]}",
                 disable_web_page_preview=True,
                 reply_markup=get_pagination(
-                    action="all",
                     callbackfactory=ItemsCallbackFactory,
                     page=callback_data.page,
                     pages_amount=len(grouped_items_list),
                     steam_id=callback_data.steam_id,
                     steam_name=callback_data.steam_name,
+                    limit=callback_data.limit,
+                    order=callback_data.order,
                 ),
             )
     await callback.answer()
@@ -104,7 +102,7 @@ async def get_items_text(items):
     for item_name, item_cost, first_item_cost, amount, difference in items:
         if first_item_cost != 0:
             items_list.append(
-                TEXT_ITEMS.substitute(
+                TEXT_ITEM.substitute(
                     item_name=item_name,
                     item_cost=item_cost,
                     first_item_cost=first_item_cost,

@@ -6,7 +6,7 @@ from aiogram.fsm.storage.redis import RedisStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from config import DB_URL, REDIS_URL, TOKEN
+from config import DB_URL, REDIS_URL, SCHEDULE_INTERVAL, TOKEN
 from core.bot.handlers import game, item, track, user
 from core.bot.middlewares.db_connection import DbConnection
 from core.bot.middlewares.long_operation import LongOperationMiddleware
@@ -18,6 +18,7 @@ async def start():
     """"""
     logging.basicConfig(
         level=logging.INFO,
+        # filename="inventory_log.log",
         format="%(asctime)s - [%(levelname)s] - %(name)s - "
         "(%(filename)s).%(funcName)s(%(lineno)d) - %(message)s",
     )
@@ -36,7 +37,7 @@ async def start():
     sheduler.add_job(
         check_update,
         trigger="interval",
-        seconds=60,
+        seconds=SCHEDULE_INTERVAL,
         kwargs={"bot": bot, "sessionmaker": sessionmaker, "storage": storage},
     )
     sheduler.start()

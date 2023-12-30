@@ -8,7 +8,13 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.utils import markdown
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
+from config import URL_FOR_STEAM_GAME, URL_FOR_STEAM_ITEM
+from core.bot.handlers.templates import (
+    TEXT_TRACKING_GAME,
+    TEXT_TRACKING_GAME_CHECK,
+    TEXT_TRACKING_ITEM,
+    TEXT_TRACKING_ITEM_CHECK,
+)
 from core.bot.keyboards.inline.callback_factory import (
     GamesTrackCallbackFactory,
     ItemsTrackCallbackFactory,
@@ -25,12 +31,12 @@ from core.bot.utils.apsheduler import update_redis
 from core.db.methods.create import create_game_track, create_item_track
 from core.db.methods.delete import delete_tracking_game, delete_tracking_item
 from core.db.methods.request import (
-    get_tracking_games_list_from_redis_or_db,
-    get_tracking_items_list_from_redis_or_db,
-    get_tracking_game_from_redis_or_db,
     check_game_exist_in_redis_or_db,
-    get_tracking_item_from_redis_or_db,
     check_item_exist_in_redis_or_db,
+    get_tracking_game_from_redis_or_db,
+    get_tracking_games_list_from_redis_or_db,
+    get_tracking_item_from_redis_or_db,
+    get_tracking_items_list_from_redis_or_db,
 )
 from core.inventory.steam import get_game_name, get_item_market_hash_name
 
@@ -89,11 +95,15 @@ async def get_tracking_games(
             storage=storage,
         )
         await callback.message.answer(
-            text=f"{markdown.hbold(game['name'])}\n"
-            f"Первоначальная стоимость: {game['first_cost']}\n"
-            f"Актуальная стоимость: {game['cost']}\n"
-            f"Изменение: {game['first_cost'] - game['cost']}\n"
-            f"Ссылка: {markdown.hlink('SteamLink', f'https://store.steampowered.com/app/{callback_data.game_id}')}",
+            text=TEXT_TRACKING_GAME.substitute(
+                name=game["name"],
+                cost=game["cost"],
+                first_cost=game["first_cost"],
+                difference=game["cost"] - game["first_cost"],
+                link=markdown.hlink(
+                    "SteamLink", f"{URL_FOR_STEAM_GAME}{callback_data.game_id}"
+                ),
+            ),
             reply_markup=get_control_menu_tracking_game(game_id=callback_data.game_id),
         )
         await callback.answer()
@@ -154,8 +164,9 @@ async def add_tracking_games(
             await message.answer(text=f"Игра '{game}' уже в вашем списке")
         else:
             await message.answer(
-                f"Это Ваша игра? \n\n"
-                f"https://store.steampowered.com/app/{int(message.text)}",
+                text=TEXT_TRACKING_GAME_CHECK.substitute(
+                    link=f"{URL_FOR_STEAM_GAME}{int(message.text)}"
+                ),
                 reply_markup=get_confirm_tracking_game_menu(game_id=int(message.text)),
             )
 
@@ -176,12 +187,16 @@ async def get_tracking_item(
             storage=storage,
         )
         await callback.message.answer(
-            text=f"{markdown.hbold(item['name'])}\n"
-            f"Первоначальная стоимость: {item['first_cost']}\n"
-            f"Актуальная стоимость: {item['cost']}\n"
-            f"Изменение: {item['first_cost'] - item['cost']}"
-            f"({int((item['first_cost'] - item['cost']) / item['first_cost'] * 100)}%)\n"
-            f"Сссылка: {markdown.hlink('SteamLink', f'https://steamcommunity.com/market/listings/730/{quote(name)}')}",
+            text=TEXT_TRACKING_ITEM.substitute(
+                name=name,
+                cost=item["cost"],
+                first_cost=item["first_cost"],
+                difference=item["cost"] - item["first_cost"],
+                difference_percents=int(
+                    (item["cost"] - item["first_cost"]) / item["first_cost"] * 100
+                ),
+                link=markdown.hlink("SteamLink", f"{URL_FOR_STEAM_ITEM}{quote(name)}"),
+            ),
             reply_markup=get_control_menu_tracking_items(item_id=callback_data.item_id),
         )
 
@@ -243,7 +258,8 @@ async def add_tracking_item(
             await message.answer(text=f"Предмет '{item}' уже в Вашем списке")
         else:
             await message.answer(
-                f"Это Ваш предмет? \n\n"
-                f"https://steamcommunity.com/market/listings/730/{quote(item)}",
+                text=TEXT_TRACKING_ITEM_CHECK.substitute(
+                    link=f"{URL_FOR_STEAM_ITEM}{quote(item)}"
+                ),
                 reply_markup=get_confirm_tracking_item_menu(item_id=int(message.text)),
             )

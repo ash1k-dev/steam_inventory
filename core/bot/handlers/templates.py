@@ -1,7 +1,6 @@
 from string import Template
 
-
-TEXT_ITEMS = Template(
+TEXT_ITEM = Template(
     "<b>${item_name}</b>\n"
     "Текущая стоимость: ${item_cost}руб.\n"
     "Первоначальная стоимость: ${first_item_cost}руб.\n"
@@ -11,16 +10,16 @@ TEXT_ITEMS = Template(
 )
 
 TEXT_ITEMS_INFO = Template(
-    "<b>Аккаунт ${steam_name}</b>\n"
-    "Количество предметов: ${total_amount}\n"
-    "Общая стоимость предметов: ${total_cost}руб.\n"
-    "Первоначальная стоимость предметов: ${first_total_cost}руб.\n"
+    "<b>Предметы ${steam_name}</b>\n"
+    "Количество: ${total_amount}\n"
+    "Общая стоимость: ${total_cost}руб.\n"
+    "Первоначальная стоимость: ${first_total_cost}руб.\n"
     "Прирост стоимости: ${difference_total_cost}руб. (${difference_percents}%)\n"
-    "Максимальная стоимость предмета: ${max_cost}\n"
-    "Минимальная стоимость предмета: ${min_cost}\n"
+    "Максимальная стоимость: ${max_cost}\n"
+    "Минимальная стоимость: ${min_cost}\n"
 )
 
-TEXT_GAMES = Template(
+TEXT_GAME = Template(
     "<b>${game_name}</b>\n"
     "Количество часов: ${time_in_game}\n"
     "Актуальная стоимость: ${game_cost}\n"
@@ -29,7 +28,7 @@ TEXT_GAMES = Template(
 )
 
 TEXT_GAMES_INFO = Template(
-    "<b>Аккаунт ${steam_name}</b>\n"
+    "<b>Игры ${steam_name}</b>\n"
     "Количество: ${number_of_games}\n"
     "Общая стоимость: ${total_cost}\n"
     "Общее количество часов: ${time_in_games}",
@@ -53,4 +52,27 @@ TEXT_STEAM_DELETE = Template(
 
 TEXT_STEAM_INFO = Template(
     "<b>Имя в профиле:</b> ${steam_name} \n" "<b>Steam id:</b> ${steam_id}"
+)
+
+
+TEXT_TRACKING_ITEM_CHECK = Template("Это Ваша игра? \n\n ${link}")
+
+TEXT_TRACKING_GAME_CHECK = Template("Это Ваш предмет? \n\n ${link}")
+
+
+TEXT_TRACKING_ITEM = Template(
+    "<b>${name}</b>\n"
+    "Текущая стоимость: ${cost}руб.\n"
+    "Первоначальная стоимость: ${first_cost}руб.\n"
+    "Изменение: ${difference}руб.(${difference_percents}%)\n"
+    "Ссылка: ${link}\n\n"
+)
+
+
+TEXT_TRACKING_GAME = Template(
+    "<b>${name}</b>\n"
+    "Текущая стоимость: ${cost}руб.\n"
+    "Первоначальная стоимость: ${first_cost}руб.\n"
+    "Изменение: ${difference}руб.\n"
+    "Ссылка: ${link}\n\n"
 )
