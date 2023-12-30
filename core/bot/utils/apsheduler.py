@@ -5,13 +5,14 @@ from aiogram.utils import markdown
 from methods.request import get_all_user_from_db, get_changes
 from methods.update import update_all_items_and_games, update_redis
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from core.bot.utils.templates import TEXT_CHANGING
+
 from config import URL_FOR_STEAM_GAME, URL_FOR_STEAM_ITEM
+from core.bot.utils.templates import TEXT_CHANGING
 
 
 async def check_update(bot: Bot, sessionmaker: async_sessionmaker, storage) -> None:
     async with sessionmaker() as session:
-        # await update_all_items_and_games(session)
+        await update_all_items_and_games(session)
         all_users = await get_all_user_from_db(session=session)
         for user in all_users:
             await update_redis(

@@ -3,7 +3,6 @@ from time import sleep
 
 import requests
 
-
 from config import APIKEY
 
 
@@ -30,13 +29,14 @@ def get_game_cost(game_id):
         game_cost = request.json()[str(game_id)]["data"]["price_overview"][
             "final_formatted"
         ]
-        game_cost = int(game_cost.split(",")[0])
+        game_cost = game_cost.split()[0]
+        if "," in game_cost:
+            game_cost = int(game_cost.split(",")[0])
+        else:
+            game_cost = int(game_cost)
     except Exception:
         game_cost = 0
     return game_cost
-
-
-# print(get_game_cost(261550))
 
 
 def get_game_name(game_id):
@@ -136,12 +136,12 @@ def get_item_cost(name: str, game_id: int = 730, currency: int = 5) -> float:
         params={"appid": game_id, "market_hash_name": name, "currency": currency},
     )
     cost = market_item.json()["lowest_price"].split()
-    cost = int(float(cost[0].replace(",", ".")))
+    cost = round(float(cost[0].replace(",", ".")), 2)
     return cost
 
 
 def get_item_market_hash_name(item_id, app_id=730):
-    url = f"https://api.steampowered.com/ISteamEconomy/GetAssetClassInfo/v1/"
+    url = "https://api.steampowered.com/ISteamEconomy/GetAssetClassInfo/v1/"
     result = requests.get(
         url,
         params={"key": APIKEY, "appid": app_id, "class_count": 1, "classid0": item_id},

@@ -2,7 +2,6 @@ from aiogram.utils.keyboard import ReplyKeyboardBuilder, ReplyKeyboardMarkup
 
 
 def get_main_menu() -> ReplyKeyboardMarkup:
-    """Main keyboard"""
     keyboard_builder = ReplyKeyboardBuilder()
     keyboard_builder.button(text="Мои Steam id")
     keyboard_builder.button(text="Отслеживание стоимости")
@@ -12,7 +11,6 @@ def get_main_menu() -> ReplyKeyboardMarkup:
 
 
 def get_track_menu() -> ReplyKeyboardMarkup:
-    """Сheck cost keyboard"""
     keyboard_builder = ReplyKeyboardBuilder()
     keyboard_builder.button(text="Предметы")
     keyboard_builder.button(text="Игры")

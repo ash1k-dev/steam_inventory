@@ -1,22 +1,17 @@
-import logging
-
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.storage.redis import RedisStorage
-
-from core.bot.handlers.templates import (
-    TEXT_ADD_STEAM_PROCESS,
-    TEXT_ADD_STEAM_FINAL,
-    TEXT_STEAM_INFO,
-    TEXT_STEAM_DELETE,
-)
+from aiogram.types import CallbackQuery, Message
 from methods.update import update_redis
-from redis_data_convert import redis_convert_to_dict
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
+from core.bot.handlers.templates import (
+    TEXT_ADD_STEAM_FINAL,
+    TEXT_ADD_STEAM_PROCESS,
+    TEXT_STEAM_DELETE,
+    TEXT_STEAM_INFO,
+)
 from core.bot.keyboards.inline.callback_factory import SteamidCallbackFactory
 from core.bot.keyboards.inline.inline import (
     get_control_menu,
@@ -28,11 +23,10 @@ from core.bot.utils.admin_notification import recording_steam_data_error
 from core.db.methods.create import add_initial_data, create_user
 from core.db.methods.delete import delete_steam_id
 from core.db.methods.request import (
-    get_all_steam_ids_from_db,
-    get_steamid_from_db,
-    get_user_from_db,
     check_steam_id_exist_in_redis_or_db,
     get_steam_ids_from_redis_or_db,
+    get_steamid_from_db,
+    get_user_from_db,
 )
 from core.inventory.steam import get_steam_id, get_steam_name
 
@@ -87,8 +81,7 @@ async def add_steam_id(
     try:
         steam_id = get_steam_id(message.text)
         steam_name = get_steam_name(steam_id)
-    except Exception as error:
-        # logging.error(f"Сбой в работе программы: {error}")
+    except Exception:
         await message.answer(text="Некорректный Stream id, попробуйте еще раз")
 
     else:
