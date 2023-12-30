@@ -34,7 +34,6 @@ router = Router()
 
 
 class AddSteam(StatesGroup):
-
     added_steam_id = State()
 
 

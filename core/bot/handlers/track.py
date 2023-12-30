@@ -44,12 +44,10 @@ router = Router()
 
 
 class AddGameTrack(StatesGroup):
-
     added_game_track = State()
 
 
 class AddItemTrack(StatesGroup):
-
     added_item_track = State()
 
 
