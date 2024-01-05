@@ -34,7 +34,7 @@ def get_game_cost(game_id):
         else:
             game_cost = int(game_cost)
     except KeyError:
-        logging.warning(msg=f"Not for sale now: {game_id}")
+        logging.warning(msg=f"Not for sale now or zero cost: {game_id}")
         game_cost = 0
     return game_cost
 
@@ -120,13 +120,16 @@ def get_items_list(items: dict) -> dict:
 
 def get_item_cost(name: str, game_id: int = 730, currency: int = 5) -> float:
     url = "http://steamcommunity.com//market/priceoverview"
-    market_item = requests.get(
-        url,
-        params={"appid": game_id, "market_hash_name": name, "currency": currency},
-    )
-    cost = market_item.json()["lowest_price"].split()
-    cost = round(float(cost[0].replace(",", ".")), 2)
-    return cost
+    try:
+        market_item = requests.get(
+            url,
+            params={"appid": game_id, "market_hash_name": name, "currency": currency},
+        )
+        cost = market_item.json()["lowest_price"].split()
+        cost = round(float(cost[0].replace(",", ".")), 2)
+        return cost
+    except KeyError:
+        logging.warning(f"Item - {name} has not price")
 
 
 def get_item_market_hash_name(item_id, app_id=730):
@@ -179,8 +182,6 @@ def get_inventory_info_test_data(test_data):
             classid_list[int(item)]["first_cost"] = item_cost
         except KeyError:
             logging.warning(msg=f"Zero price or no price: {data['name']}({item})")
-            items_list[item]["price"] = 0
-            classid_list[int(item)]["first_cost"] = 0
         sleep(randrange(START_RANGE_SLEEP, STOP_RANGE_SLEEP))
 
     return items_list, classid_list

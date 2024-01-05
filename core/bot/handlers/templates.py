@@ -36,7 +36,7 @@ TEXT_GAMES_INFO = Template(
 
 
 TEXT_ADD_STEAM_PROCESS = Template(
-    "Происходит добавление steam id <b>${steam_id}</b>"
+    "Происходит добавление Steam id <b>${steam_id}</b>"
     " с именем <b>'${steam_name}'</b>.\n"
     "Обработка данных займет какое-то время и зависит"
     " от количества предметов и игр на Вашем аккаунте"
