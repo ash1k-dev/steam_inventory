@@ -55,6 +55,17 @@ TEXT_STEAM_INFO = Template(
 )
 
 
+TEXT_ADD_STEAM_ERROR = Template(
+    "При добавлении Steam id - ${steam_id} произошла ошибка,"
+    " попробуйте повторить через ${repeat_time}"
+)
+
+
+TEXT_ADD_STEAM_ERROR_REPEAT = Template(
+    "Вы пытались ранее добавить этот Steam id, попробуйту позже."
+    " До повторной попытки осталось - ${text_minute}"
+)
+
 TEXT_TRACKING_ITEM_CHECK = Template("Это Ваша игра? \n\n ${link}")
 
 TEXT_TRACKING_GAME_CHECK = Template("Это Ваш предмет? \n\n ${link}")

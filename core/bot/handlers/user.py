@@ -1,3 +1,5 @@
+import logging
+
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -6,7 +8,10 @@ from aiogram.types import CallbackQuery, Message
 from methods.update import update_redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import ERROR_STORAGE_TIME, REPEAT_AFTER_ERROR_TIME
 from core.bot.handlers.templates import (
+    TEXT_ADD_STEAM_ERROR,
+    TEXT_ADD_STEAM_ERROR_REPEAT,
     TEXT_ADD_STEAM_FINAL,
     TEXT_ADD_STEAM_PROCESS,
     TEXT_STEAM_DELETE,
@@ -19,7 +24,8 @@ from core.bot.keyboards.inline.inline import (
     get_steams_menu,
 )
 from core.bot.keyboards.reply.reply import get_main_menu, get_track_menu
-from core.bot.utils.admin_notification import recording_steam_data_error
+from core.bot.utils.admin_notification import send_recording_steam_data_error
+from core.bot.utils.time_convert import time_convert
 from core.db.methods.create import add_initial_data, create_user
 from core.db.methods.delete import delete_steam_id
 from core.db.methods.request import (
@@ -80,7 +86,8 @@ async def add_steam_id(
     try:
         steam_id = get_steam_id(message.text)
         steam_name = get_steam_name(steam_id)
-    except Exception:
+    except IndexError:
+        logging.warning(msg=f"Error when adding Stream id: {message.text}")
         await message.answer(text="Некорректный Stream id, попробуйте еще раз")
 
     else:
@@ -115,34 +122,78 @@ async def add_steam_id(
                         steam_id=steam_id, steam_name=steam_name
                     )
                 )
-            except Exception as e:
-                check_earlier_error = await storage.redis.get(name=str(steam_id))
-                check_creating_steamid = await get_steamid_from_db(
-                    steam_id=steam_id, session=session
+            except Exception as error:
+                await processing_add_steam_id_error(
+                    bot=bot,
+                    error=error,
+                    message=message,
+                    session=session,
+                    steam_id=steam_id,
+                    storage=storage,
                 )
-                if check_earlier_error:
-                    await recording_steam_data_error(
-                        bot=bot,
-                        user_name=message.from_user.full_name,
-                        user_id=message.from_user.id,
-                        steam_id=steam_id,
-                        error=e,
-                    )
-                    if check_creating_steamid:
-                        await delete_steam_id(steam_id=str(steam_id), session=session)
-                    await storage.redis.delete(str(steam_id))
-                    await message.answer(
-                        "Данные о текущей ошибке отправленны администраторам"
-                    )
-                else:
-                    await storage.redis.set(name=str(steam_id), value=1, ex=60000)
-                    if check_creating_steamid:
-                        await delete_steam_id(steam_id=str(steam_id), session=session)
-                    await message.answer(
-                        "Произошла ошибка, попробуйте повторить через 5-10 минут"
-                    )
 
     await state.clear()
+
+
+async def processing_add_steam_id_error(
+    bot: Bot,
+    error: Exception,
+    message: Message,
+    session: AsyncSession,
+    steam_id: int,
+    storage: RedisStorage,
+):
+    check_earlier_error = await storage.redis.get(name=str(steam_id))
+    left_error_storage_time = await storage.redis.ttl(name=str(steam_id))
+    check_creating_steamid = await get_steamid_from_db(
+        steam_id=steam_id, session=session
+    )
+    if (
+        check_earlier_error
+        and left_error_storage_time < ERROR_STORAGE_TIME - REPEAT_AFTER_ERROR_TIME
+    ):
+        logging.error(
+            msg=f"Error when adding existing Stream id(second try): {message.text}",
+            exc_info=True,
+        )
+        await send_recording_steam_data_error(
+            bot=bot,
+            user_name=message.from_user.full_name,
+            user_id=message.from_user.id,
+            steam_id=steam_id,
+            error=str(error),
+        )
+        if check_creating_steamid:
+            await delete_steam_id(steam_id=str(steam_id), session=session)
+        await storage.redis.delete(str(steam_id))
+        await message.answer("Данные о текущей ошибке отправленны администраторам")
+    elif (
+        check_earlier_error
+        and left_error_storage_time > ERROR_STORAGE_TIME - REPEAT_AFTER_ERROR_TIME
+    ):
+        time_left_in_minute = REPEAT_AFTER_ERROR_TIME - (
+            ERROR_STORAGE_TIME - left_error_storage_time
+        )
+        text_minute = time_convert(time_left_in_minute)
+        await message.answer(
+            TEXT_ADD_STEAM_ERROR_REPEAT.substitute(
+                text_minute=text_minute,
+            )
+        )
+    else:
+        logging.error(
+            msg=f"Error when adding existing Stream id(first try): {message.text}",
+            exc_info=True,
+        )
+        await storage.redis.set(name=str(steam_id), value=1, ex=ERROR_STORAGE_TIME)
+        if check_creating_steamid:
+            await delete_steam_id(steam_id=str(steam_id), session=session)
+        await message.answer(
+            TEXT_ADD_STEAM_ERROR.substitute(
+                steam_id=message.text,
+                repeat_time=time_convert(REPEAT_AFTER_ERROR_TIME),
+            )
+        )
 
 
 @router.callback_query(SteamidCallbackFactory.filter())
