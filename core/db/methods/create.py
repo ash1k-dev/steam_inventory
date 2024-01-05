@@ -31,7 +31,6 @@ from core.inventory.test_data import inventory_json
 
 
 async def create_user(name: str, telegram_id: int, session: AsyncSession) -> None:
-    """Creating user"""
     user = User(name=name, telegram_id=telegram_id)
     session.add(user)
     await session.commit()
@@ -40,7 +39,6 @@ async def create_user(name: str, telegram_id: int, session: AsyncSession) -> Non
 async def create_steam(
     steam_id: int, telegram_id: int, steam_name: str, session: AsyncSession
 ) -> None:
-    # user = await get_user_from_db(telegram_id=telegram_id, session=session)
     steam_id = Steam(steam_id=steam_id, user_id=telegram_id, name=steam_name)
     session.add(steam_id)
     await session.commit()
@@ -49,14 +47,14 @@ async def create_steam(
 async def create_all_steam_inventorys(
     all_games_info: dict, steam_id: int, session: AsyncSession
 ):
-    all_inventorys = []
+    all_inventory = []
     for game_id in all_games_info:
         steam_inventory = Inventory(
             steam_id=steam_id,
             games_id=game_id,
         )
-        all_inventorys.append(steam_inventory)
-    session.add_all(all_inventorys)
+        all_inventory.append(steam_inventory)
+    session.add_all(all_inventory)
     await session.commit()
 
 
@@ -138,11 +136,11 @@ async def add_initial_data(message, session, steam_id, steam_name):
     )
     items_dict, classid_dict = get_inventory_info_test_data(inventory_json)
     await create_all_steam_items(items_dict, session=session)
-    inventorys_id = await get_inventorys_id_from_db(
+    inventory_id = await get_inventorys_id_from_db(
         session=session, steam_id=steam_id_from_db.id
     )
     await create_steam_items_in_inventory(
-        classid_dict, inventory_id=inventorys_id.id, session=session
+        classid_dict, inventory_id=inventory_id.id, session=session
     )
 
 
@@ -157,7 +155,6 @@ async def create_game(
 async def create_game_track(
     game_id: int, telegram_id: int, session: AsyncSession
 ) -> None:
-    """Creating user"""
     first_game_cost = get_game_cost(game_id=game_id)
     name = get_game_name(game_id=int(game_id))
     check_game = await get_game_from_db(game_id=game_id, session=session)
@@ -183,7 +180,6 @@ async def create_item(
 async def create_item_track(
     item_id: int, telegram_id: int, session: AsyncSession
 ) -> None:
-    """Creating user"""
     market_hash_name = get_item_market_hash_name(item_id=item_id)
     first_item_cost = get_item_cost(name=market_hash_name)
     check_item = await get_item_from_db(item_id=item_id, session=session)

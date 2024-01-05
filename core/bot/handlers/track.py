@@ -1,3 +1,4 @@
+import logging
 from urllib.parse import quote
 
 from aiogram import F, Router
@@ -148,7 +149,8 @@ async def add_tracking_games(
 ):
     try:
         game = get_game_name(int(message.text))
-    except Exception:
+    except KeyError:
+        logging.warning(msg=f"Error when adding game: {message.text}")
         await message.answer(text="Некорректный Id игры, попробуйте еще раз")
 
     else:
@@ -242,7 +244,8 @@ async def add_tracking_item(
 ):
     try:
         item = get_item_market_hash_name(int(message.text))
-    except Exception:
+    except KeyError:
+        logging.warning(msg=f"Error when adding item: {message.text}")
         await message.answer(text="Некорректный Id предмета, попробуйте еще раз")
 
     else:

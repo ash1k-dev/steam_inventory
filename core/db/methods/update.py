@@ -3,7 +3,7 @@ from time import sleep
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from config import STORAGE_TIME
+from config import START_RANGE_SLEEP, STOP_RANGE_SLEEP, STORAGE_TIME
 from core.db.methods.request import (
     get_all_games_from_db,
     get_all_items_from_db,
@@ -22,14 +22,12 @@ async def update_all_items(session: AsyncSession):
     new_items_list = []
     items_list = await get_all_items_from_db(session=session)
     for item in items_list:
-        try:
-            new_item_cost = get_item_cost(item.name)
-            if item.cost != new_item_cost:
-                item.cost = new_item_cost
-                new_items_list.append(item)
-        except Exception:
-            pass
-        sleep(randrange(4, 10))
+        new_item_cost = get_item_cost(item.name)
+        if item.cost != new_item_cost:
+            item.cost = new_item_cost
+            new_items_list.append(item)
+
+        sleep(randrange(START_RANGE_SLEEP, STOP_RANGE_SLEEP))
     session.add_all(new_items_list)
     await session.commit()
 
@@ -38,14 +36,11 @@ async def update_all_games(session: AsyncSession):
     new_items_list = []
     all_games = await get_all_games_from_db(session=session)
     for game in all_games:
-        try:
-            new_game_cost = get_game_cost(game_id=game.game_id)
-            if new_game_cost != game.cost:
-                game.cost = new_game_cost
-                new_items_list.append(game)
-        except Exception:
-            pass
-        sleep(randrange(1, 3))
+        new_game_cost = get_game_cost(game_id=game.game_id)
+        if new_game_cost != game.cost:
+            game.cost = new_game_cost
+            new_items_list.append(game)
+        sleep(randrange(START_RANGE_SLEEP, STOP_RANGE_SLEEP))
     session.add_all(new_items_list)
     await session.commit()
 
@@ -147,7 +142,9 @@ async def update_games_info_redis(session, steam_id):
     return games_info
 
 
-async def update_redis(user_telegram_id, session: async_sessionmaker, storage):
+async def update_redis(
+    user_telegram_id, session: async_sessionmaker | AsyncSession, storage
+):
     tracking_items = await update_tracking_redis(
         session=session,
         user_telegram_id=user_telegram_id,

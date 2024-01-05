@@ -1,13 +1,13 @@
+import logging
 from random import randrange
 from time import sleep
 
 import requests
 
-from config import APIKEY
+from config import APIKEY, START_RANGE_SLEEP, STOP_RANGE_SLEEP
 
 
 def get_time_in_games(steam_id):
-    """Getting time in all games"""
     url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
     request = requests.get(url, params={"key": APIKEY, "steamid": steam_id})
     games_list = request.json()["response"]["games"]
@@ -22,7 +22,6 @@ def get_time_in_games(steam_id):
 
 
 def get_game_cost(game_id):
-    """Getting game cost"""
     try:
         url = "http://store.steampowered.com/api/appdetails"
         request = requests.get(url, params={"appids": game_id, "cc": "ru"})
@@ -34,13 +33,13 @@ def get_game_cost(game_id):
             game_cost = int(game_cost.split(",")[0])
         else:
             game_cost = int(game_cost)
-    except Exception:
+    except KeyError:
+        logging.warning(msg=f"Not for sale now: {game_id}")
         game_cost = 0
     return game_cost
 
 
 def get_game_name(game_id):
-    """Getting game cost"""
     url = "http://store.steampowered.com/api/appdetails"
     request = requests.get(url, params={"appids": game_id, "cc": "ru"})
     game_name = request.json()[str(game_id)]["data"]["name"]
@@ -48,7 +47,6 @@ def get_game_name(game_id):
 
 
 def get_steam_id(steam_id: str) -> int:
-    """Name to id translation"""
     if steam_id.isdigit():
         return int(steam_id)
     url = "https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/"
@@ -60,7 +58,6 @@ def get_steam_id(steam_id: str) -> int:
 
 
 def get_steam_name(steam_id):
-    """Getting name from steam id"""
     url = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/"
     request = requests.get(
         url,
@@ -74,7 +71,6 @@ def get_steam_name(steam_id):
 
 
 def get_games_id(steam_id: int) -> dict:
-    """Getting all games id"""
     url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/"
     games_id_full = requests.get(
         url,
@@ -91,7 +87,6 @@ def get_games_id(steam_id: int) -> dict:
 
 
 def get_steam_inventory(steam_id: int, game_id: int = 730) -> dict:
-    """Getting all inventory"""
     # steam_id = get_steam_id(steam_id)
     url = f"https://steamcommunity.com/inventory/{steam_id}/{game_id}/2"
     data = requests.get(url)
@@ -99,10 +94,6 @@ def get_steam_inventory(steam_id: int, game_id: int = 730) -> dict:
 
 
 def get_classid_list(items: dict) -> dict:
-    """
-    Getting classid list from inventory
-    (for counting the number of items)
-    """
     classid_names = {}
     for classid in items["assets"]:
         id = int(classid["classid"])
@@ -114,7 +105,6 @@ def get_classid_list(items: dict) -> dict:
 
 
 def get_items_list(items: dict) -> dict:
-    """Getting items names from inventory"""
     market_names = {}
     for market_name in items["descriptions"]:
         # if (
@@ -129,7 +119,6 @@ def get_items_list(items: dict) -> dict:
 
 
 def get_item_cost(name: str, game_id: int = 730, currency: int = 5) -> float:
-    """Getting cost of item"""
     url = "http://steamcommunity.com//market/priceoverview"
     market_item = requests.get(
         url,
@@ -180,7 +169,6 @@ def get_all_inventory_info(steam_id: int):
 
 
 def get_inventory_info_test_data(test_data):
-    # steam_inventory = get_steam_inventory(steam_id=steam_id, game_id=730)
     steam_inventory = test_data
     classid_list = get_classid_list(items=steam_inventory)
     items_list = get_items_list(items=steam_inventory)
@@ -189,10 +177,10 @@ def get_inventory_info_test_data(test_data):
             item_cost = get_item_cost(data["name"])
             items_list[item]["price"] = item_cost
             classid_list[int(item)]["first_cost"] = item_cost
-        except Exception:
-            # item_cost = randrange(10, 100)
+        except KeyError:
+            logging.warning(msg=f"Zero price or no price: {data['name']}({item})")
             items_list[item]["price"] = 0
             classid_list[int(item)]["first_cost"] = 0
-        sleep(randrange(4, 10))
+        sleep(randrange(START_RANGE_SLEEP, STOP_RANGE_SLEEP))
 
     return items_list, classid_list
