@@ -7,20 +7,6 @@ import requests
 from config import APIKEY, START_RANGE_SLEEP, STOP_RANGE_SLEEP
 
 
-def get_time_in_games(steam_id):
-    url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
-    request = requests.get(url, params={"key": APIKEY, "steamid": steam_id})
-    games_list = request.json()["response"]["games"]
-    time_into_games = {}
-    for game in games_list:
-        if game["playtime_forever"] == 0:
-            time = 0
-        else:
-            time = round(game["playtime_forever"] / 60, 1)
-        time_into_games[game["appid"]] = time
-    return time_into_games
-
-
 def get_game_cost(game_id):
     try:
         url = "http://store.steampowered.com/api/appdetails"
@@ -70,7 +56,7 @@ def get_steam_name(steam_id):
     return steam_name
 
 
-def get_games_id(steam_id: int) -> dict:
+def get_games_info_without_cost(steam_id: int) -> dict:
     url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/"
     games_id_full = requests.get(
         url,
@@ -82,7 +68,14 @@ def get_games_id(steam_id: int) -> dict:
     )
     games_id = {}
     for id in games_id_full.json()["response"]["games"]:
-        games_id[id["appid"]] = id["name"]
+        if id["playtime_forever"] == 0:
+            time = 0
+        else:
+            time = round(id["playtime_forever"] / 60, 1)
+        games_id[id["appid"]] = {
+            "name": id["name"],
+            "time": time,
+        }
     return games_id
 
 
@@ -107,10 +100,6 @@ def get_classid_list(items: dict) -> dict:
 def get_items_list(items: dict) -> dict:
     market_names = {}
     for market_name in items["descriptions"]:
-        # if (
-        #     market_name["type"] != "Extraordinary Collectible"
-        #     and "Graffiti" not in market_name["market_hash_name"]
-        # ):
         name = market_name["market_hash_name"]
         appid = market_name["appid"]
         classid = market_name["classid"]
@@ -144,12 +133,11 @@ def get_item_market_hash_name(item_id, app_id=730):
 
 def get_all_games_info(steam_id: int):
     final_list = {}
-    games_id_list = get_games_id(steam_id)
-    time_into_games = get_time_in_games(steam_id)
-    for game_id, game_name in games_id_list.items():
-        time = time_into_games[game_id]
+    games_id_list = get_games_info_without_cost(steam_id)
+    for game_id, game_data in games_id_list.items():
+        time = game_data["time"]
         price = get_game_cost(game_id)
-        final_list[game_id] = {"name": game_name, "time": time, "price": price}
+        final_list[game_id] = {"name": game_data["name"], "time": time, "price": price}
 
     return final_list
 
