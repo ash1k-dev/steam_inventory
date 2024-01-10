@@ -66,9 +66,9 @@ TEXT_ADD_STEAM_ERROR_REPEAT = Template(
     " До повторной попытки осталось - ${text_minute}"
 )
 
-TEXT_TRACKING_ITEM_CHECK = Template("Это Ваша игра? \n\n ${link}")
+TEXT_TRACKING_GAME_CHECK = Template("Это Ваша игра? \n\n ${link}")
 
-TEXT_TRACKING_GAME_CHECK = Template("Это Ваш предмет? \n\n ${link}")
+TEXT_TRACKING_ITEM_CHECK = Template("Это Ваш предмет? \n\n ${link}")
 
 
 TEXT_TRACKING_ITEM = Template(

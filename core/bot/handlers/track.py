@@ -9,7 +9,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.utils import markdown
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import URL_FOR_STEAM_GAME, URL_FOR_STEAM_ITEM
+from config import FLOATING_POINT_VARIABLE, URL_FOR_STEAM_GAME, URL_FOR_STEAM_ITEM
 from core.bot.handlers.templates import (
     TEXT_TRACKING_GAME,
     TEXT_TRACKING_GAME_CHECK,
@@ -39,7 +39,7 @@ from core.db.methods.request import (
     get_tracking_item_from_redis_or_db,
     get_tracking_items_list_from_redis_or_db,
 )
-from core.inventory.steam import get_game_name, get_item_market_hash_name
+from core.steam.steam import get_game_name, get_item_market_hash_name
 
 router = Router()
 
@@ -189,9 +189,10 @@ async def get_tracking_item(
         await callback.message.answer(
             text=TEXT_TRACKING_ITEM.substitute(
                 name=name,
-                cost=item["cost"],
-                first_cost=item["first_cost"],
-                difference=item["cost"] - item["first_cost"],
+                cost=item["cost"] / FLOATING_POINT_VARIABLE,
+                first_cost=item["first_cost"] / FLOATING_POINT_VARIABLE,
+                difference=(item["cost"] - item["first_cost"])
+                / FLOATING_POINT_VARIABLE,
                 difference_percents=int(
                     (item["cost"] - item["first_cost"]) / item["first_cost"] * 100
                 ),

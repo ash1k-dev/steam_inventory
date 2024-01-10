@@ -24,6 +24,12 @@ START_RANGE_SLEEP = int(os.getenv("START_RANGE_SLEEP"))
 STOP_RANGE_SLEEP = int(os.getenv("STOP_RANGE_SLEEP"))
 ERROR_STORAGE_TIME = int(os.getenv("ERROR_STORAGE_TIME"))
 REPEAT_AFTER_ERROR_TIME = int(os.getenv("REPEAT_AFTER_ERROR_TIME"))
+FLOATING_POINT_VARIABLE = int(os.getenv("FLOATING_POINT_VARIABLE"))
+"""
+Symbols of popular currencies:
+https://partner.steamgames.com/doc/store/pricing/currencies
+"""
+CURRENCY = int(os.getenv("CURRENCY"))
 
 URL_FOR_STEAM_GAME = os.getenv("URL_FOR_STEAM_GAME")
 URL_FOR_STEAM_ITEM = os.getenv("URL_FOR_STEAM_ITEM")

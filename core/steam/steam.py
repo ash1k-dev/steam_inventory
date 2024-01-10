@@ -4,7 +4,13 @@ from time import sleep
 
 import requests
 
-from config import APIKEY, START_RANGE_SLEEP, STOP_RANGE_SLEEP
+from config import (
+    APIKEY,
+    CURRENCY,
+    FLOATING_POINT_VARIABLE,
+    START_RANGE_SLEEP,
+    STOP_RANGE_SLEEP,
+)
 
 
 def get_game_cost(game_id):
@@ -107,7 +113,7 @@ def get_items_list(items: dict) -> dict:
     return market_names
 
 
-def get_item_cost(name: str, game_id: int = 730, currency: int = 5) -> float:
+def get_item_cost(name: str, game_id: int = 730, currency: int = CURRENCY) -> float:
     url = "http://steamcommunity.com//market/priceoverview"
     try:
         market_item = requests.get(
@@ -115,10 +121,11 @@ def get_item_cost(name: str, game_id: int = 730, currency: int = 5) -> float:
             params={"appid": game_id, "market_hash_name": name, "currency": currency},
         )
         cost = market_item.json()["lowest_price"].split()
-        cost = round(float(cost[0].replace(",", ".")), 2)
-        return cost
+        cost = round(float(cost[0].replace(",", ".")), 2) * FLOATING_POINT_VARIABLE
     except KeyError:
         logging.warning(f"Item - {name} has not price")
+        cost = 0
+    return cost
 
 
 def get_item_market_hash_name(item_id, app_id=730):
@@ -173,3 +180,8 @@ def get_inventory_info_test_data(test_data):
         sleep(randrange(START_RANGE_SLEEP, STOP_RANGE_SLEEP))
 
     return items_list, classid_list
+
+
+# from core.steam.test_data import inventory_json
+
+# print(get_inventory_info_test_data(inventory_json))

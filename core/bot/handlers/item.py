@@ -6,7 +6,7 @@ from aiogram.types import CallbackQuery
 from aiogram.utils import markdown
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import ITEMS_ON_PAGE, URL_FOR_STEAM_ITEM
+from config import FLOATING_POINT_VARIABLE, ITEMS_ON_PAGE, URL_FOR_STEAM_ITEM
 from core.bot.handlers.templates import TEXT_ITEM, TEXT_ITEMS_INFO
 from core.bot.keyboards.inline.callback_factory import ItemsCallbackFactory
 from core.bot.keyboards.inline.inline import (
@@ -47,14 +47,14 @@ async def get_items(
             text=TEXT_ITEMS_INFO.substitute(
                 steam_name=callback_data.steam_name,
                 total_amount=total_amount,
-                total_cost=total_cost,
-                first_total_cost=first_total_cost,
-                difference_total_cost=difference_total_cost,
+                total_cost=total_cost / FLOATING_POINT_VARIABLE,
+                first_total_cost=first_total_cost / FLOATING_POINT_VARIABLE,
+                difference_total_cost=difference_total_cost / FLOATING_POINT_VARIABLE,
                 difference_percents=int(
                     (difference_total_cost / first_total_cost) * 100
                 ),
-                max_cost=max_cost,
-                min_cost=min_cost,
+                max_cost=max_cost / FLOATING_POINT_VARIABLE,
+                min_cost=min_cost / FLOATING_POINT_VARIABLE,
             ),
             reply_markup=get_items_menu(
                 steam_id=callback_data.steam_id,
@@ -104,9 +104,9 @@ async def get_items_text(items):
             items_list.append(
                 TEXT_ITEM.substitute(
                     item_name=item_name,
-                    item_cost=item_cost,
-                    first_item_cost=first_item_cost,
-                    difference=difference,
+                    item_cost=item_cost / FLOATING_POINT_VARIABLE,
+                    first_item_cost=first_item_cost / FLOATING_POINT_VARIABLE,
+                    difference=difference / FLOATING_POINT_VARIABLE,
                     difference_percents=int(difference / first_item_cost * 100),
                     amount=amount,
                     link=markdown.hlink(
