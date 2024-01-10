@@ -15,7 +15,7 @@ from core.db.methods.request import (
     get_games_info_from_db,
     get_items_info_from_db,
 )
-from core.inventory.steam import get_game_cost, get_item_cost
+from core.steam.steam import get_game_cost, get_item_cost
 
 
 async def update_all_items(session: AsyncSession):
@@ -40,7 +40,6 @@ async def update_all_games(session: AsyncSession):
         if new_game_cost != game.cost:
             game.cost = new_game_cost
             new_items_list.append(game)
-        sleep(randrange(START_RANGE_SLEEP, STOP_RANGE_SLEEP))
     session.add_all(new_items_list)
     await session.commit()
 

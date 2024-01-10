@@ -34,7 +34,7 @@ from core.db.methods.request import (
     get_steamid_from_db,
     get_user_from_db,
 )
-from core.inventory.steam import get_steam_id, get_steam_name
+from core.steam.steam import get_steam_id, get_steam_name
 
 router = Router()
 

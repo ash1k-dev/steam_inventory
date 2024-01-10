@@ -19,7 +19,7 @@ from core.db.models.models import (
     Steam,
     User,
 )
-from core.inventory.steam import (
+from core.steam.steam import (
     get_all_games_info,
     get_game_cost,
     get_game_name,
@@ -27,7 +27,7 @@ from core.inventory.steam import (
     get_item_cost,
     get_item_market_hash_name,
 )
-from core.inventory.test_data import inventory_json
+from core.steam.test_data import inventory_json
 
 
 async def create_user(name: str, telegram_id: int, session: AsyncSession) -> None:
@@ -182,6 +182,13 @@ async def create_item_track(
 ) -> None:
     market_hash_name = get_item_market_hash_name(item_id=item_id)
     first_item_cost = get_item_cost(name=market_hash_name)
+    print("--------------------------------------------------------")
+    print("--------------------------------------------------------")
+    print("--------------------------------------------------------")
+    print(f"{first_item_cost} - это в create")
+    print("--------------------------------------------------------")
+    print("--------------------------------------------------------")
+    print("--------------------------------------------------------")
     check_item = await get_item_from_db(item_id=item_id, session=session)
     if check_item is None:
         await create_item(
