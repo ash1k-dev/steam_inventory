@@ -2166,7 +2166,7 @@ TEST_DATA_GAME_NAME_AND_COST_CASE_1 = {
 
 RESULT_TEST_GAME_NAME_CASE_1 = "Warhammer 40,000: Darktide"
 
-RESULT_TEST_GAME_COST_CASE_1 = 2749
+RESULT_TEST_GAME_COST_CASE_1 = 274900
 
 TEST_GAME_ID_CASE_1 = 1361210
 
@@ -2362,7 +2362,7 @@ TEST_DATA_GAME_NAME_AND_COST_CASE_2 = {
 
 RESULT_TEST_GAME_NAME_CASE_2 = "God Of Weapons"
 
-RESULT_TEST_GAME_COST_CASE_2 = 203
+RESULT_TEST_GAME_COST_CASE_2 = 20300
 
 TEST_GAME_ID_CASE_2 = 2342950
 
@@ -2630,7 +2630,7 @@ TEST_DATA_GAME_NAME_AND_COST_CASE_3 = {
 
 RESULT_TEST_GAME_NAME_CASE_3 = "Starship Troopers: Terran Command"
 
-RESULT_TEST_GAME_COST_CASE_3 = 715
+RESULT_TEST_GAME_COST_CASE_3 = 71500
 
 TEST_GAME_ID_CASE_3 = 1202130
 
@@ -2684,21 +2684,21 @@ RESULT_TEST_ALL_GAMES_INFO = {
     12210: {
         "name": "Grand Theft Auto IV: The Complete Edition",
         "time": 1.0,
-        "price": 0,
+        "cost": 0,
     },
-    214360: {"name": "Tower Wars", "time": 5.9, "price": 189},
-    72850: {"name": "The Elder Scrolls V: Skyrim", "time": 57.3, "price": 0},
-    10: {"name": "Counter-Strike", "time": 0.9, "price": 259},
-    70: {"name": "Half-Life", "time": 0, "price": 259},
+    214360: {"name": "Tower Wars", "time": 5.9, "cost": 18900},
+    72850: {"name": "The Elder Scrolls V: Skyrim", "time": 57.3, "cost": 0},
+    10: {"name": "Counter-Strike", "time": 0.9, "cost": 25900},
+    70: {"name": "Half-Life", "time": 0, "cost": 25900},
 }
 
 
 GAME_COST_DICT = {
     12210: 0,
-    214360: 189,
+    214360: 18900,
     72850: 0,
-    10: 259,
-    70: 259,
+    10: 25900,
+    70: 25900,
 }
 
 LIST_ALL_GAMES_INFO = [(TEST_DATA_ALL_GAMES_INFO, RESULT_TEST_ALL_GAMES_INFO)]
