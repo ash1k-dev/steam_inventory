@@ -86,31 +86,9 @@ def get_games_info_without_cost(steam_id: int) -> dict:
 
 
 def get_steam_inventory(steam_id: int, game_id: int = 730) -> dict:
-    # steam_id = get_steam_id(steam_id)
     url = f"https://steamcommunity.com/inventory/{steam_id}/{game_id}/2"
     data = requests.get(url)
     return data.json()
-
-
-def get_classid_list(items: dict) -> dict:
-    classid_names = {}
-    for classid in items["assets"]:
-        id = int(classid["classid"])
-        if id in classid_names:
-            classid_names[id]["amount"] += 1
-        else:
-            classid_names[id] = {"amount": 1}
-    return classid_names
-
-
-def get_items_list(items: dict) -> dict:
-    market_names = {}
-    for market_name in items["descriptions"]:
-        name = market_name["market_hash_name"]
-        appid = market_name["appid"]
-        classid = market_name["classid"]
-        market_names[classid] = {"name": name, "appid": appid}
-    return market_names
 
 
 def get_item_cost(name: str, game_id: int = 730, currency: int = CURRENCY) -> float:
@@ -143,45 +121,25 @@ def get_all_games_info(steam_id: int):
     games_id_list = get_games_info_without_cost(steam_id)
     for game_id, game_data in games_id_list.items():
         time = game_data["time"]
-        price = get_game_cost(game_id)
-        final_list[game_id] = {"name": game_data["name"], "time": time, "price": price}
+        cost = get_game_cost(game_id)
+        final_list[game_id] = {"name": game_data["name"], "time": time, "cost": cost}
 
     return final_list
 
 
-def get_all_inventory_info(steam_id: int):
-    # games_id_list = get_games_id(steam_id)
-    # for game in games_id_list:
-    #     steam_inventory = get_steam_inventory(user_id=int(steam_id), game_id=game)
-    #     items_list = get_items_list(items=steam_inventory)
-    #     classid_list = get_classid_list(items=steam_inventory)
-    steam_inventory = get_steam_inventory(steam_id=steam_id, game_id=730)
-    # classid_list = get_classid_list(items=steam_inventory)
-    items_list = get_items_list(items=steam_inventory)
-    for item, data in items_list.items():
-        item_cost = get_item_cost(data["name"])
-        items_list[item]["price"] = item_cost
-
-    # return items_list, classid_list
-    return items_list
-
-
-def get_inventory_info_test_data(test_data):
-    steam_inventory = test_data
-    classid_list = get_classid_list(items=steam_inventory)
-    items_list = get_items_list(items=steam_inventory)
-    for item, data in items_list.items():
-        try:
-            item_cost = get_item_cost(data["name"])
-            items_list[item]["price"] = item_cost
-            classid_list[int(item)]["first_cost"] = item_cost
-        except KeyError:
-            logging.warning(msg=f"Zero price or no price: {data['name']}({item})")
+def get_inventory_info(items: dict) -> dict:
+    items_info = {}
+    for classid in items["assets"]:
+        id = int(classid["classid"])
+        if id in items_info:
+            items_info[id]["amount"] += 1
+        else:
+            items_info[id] = {"amount": 1}
+    for market_name in items["descriptions"]:
+        name = market_name["market_hash_name"]
+        item_cost = get_item_cost(name)
+        appid = market_name["appid"]
+        classid = int(market_name["classid"])
+        items_info[classid].update({"name": name, "appid": appid, "cost": item_cost})
         sleep(randrange(START_RANGE_SLEEP, STOP_RANGE_SLEEP))
-
-    return items_list, classid_list
-
-
-# from core.steam.test_data import inventory_json
-
-# print(get_inventory_info_test_data(inventory_json))
+    return items_info

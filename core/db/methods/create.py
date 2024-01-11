@@ -23,7 +23,7 @@ from core.steam.steam import (
     get_all_games_info,
     get_game_cost,
     get_game_name,
-    get_inventory_info_test_data,
+    get_inventory_info,
     get_item_cost,
     get_item_market_hash_name,
 )
@@ -58,16 +58,16 @@ async def create_all_steam_inventorys(
     await session.commit()
 
 
-async def create_all_steam_items(items_dict: dict, session: AsyncSession) -> None:
+async def create_all_steam_items(items_data: dict, session: AsyncSession) -> None:
     items = []
     items_list = await get_items_list_from_db(session=session)
-    for item_id, item_data in items_dict.items():
+    for item_id, item_data in items_data.items():
         if int(item_id) not in items_list:
             steam_item = Item(
                 name=item_data["name"],
                 app_id=item_data["appid"],
-                classid=int(item_id),
-                cost=item_data["price"],
+                classid=item_id,
+                cost=item_data["cost"],
             )
             items.append(steam_item)
     session.add_all(items)
@@ -75,15 +75,15 @@ async def create_all_steam_items(items_dict: dict, session: AsyncSession) -> Non
 
 
 async def create_steam_items_in_inventory(
-    classid_dict: dict, inventory_id: int, session: AsyncSession
+    items_data: dict, inventory_id: int, session: AsyncSession
 ):
     classids = []
-    for classid, data in classid_dict.items():
+    for classid, data in items_data.items():
         steam_items_in_inventory = ItemInInventory(
             amount=data["amount"],
             inventory_id=inventory_id,
             item_id=classid,
-            first_cost=data["first_cost"],
+            first_cost=data["cost"],
         )
         classids.append(steam_items_in_inventory)
     session.add_all(classids)
@@ -100,18 +100,45 @@ async def create_all_games(
             game = Game(
                 game_id=game_id,
                 name=game_data["name"],
-                cost=game_data["price"],
+                cost=game_data["cost"],
             )
             all_games.append(game)
         game_in_account = GameInAccount(
             game_id=game_id,
             game_name=game_data["name"],
-            first_cost=game_data["price"],
+            first_cost=game_data["cost"],
             time_in_game=game_data["time"],
             steam_id=steam_id,
         )
         all_games.append(game_in_account)
     session.add_all(all_games)
+    await session.commit()
+
+
+async def create_all_items(
+    all_items_info: dict, inventory_id: int, session: AsyncSession
+) -> None:
+    all_items = []
+    items_list = await get_items_list_from_db(session=session)
+    for item_id, item_data in all_items_info.items():
+        if item_id not in items_list and item_data["cost"] != 0:
+            steam_item = Item(
+                name=item_data["name"],
+                app_id=item_data["appid"],
+                classid=item_id,
+                cost=item_data["cost"],
+            )
+            all_items.append(steam_item)
+    for item_id, item_data in all_items_info.items():
+        if item_data["cost"] != 0:
+            steam_items_in_inventory = ItemInInventory(
+                amount=item_data["amount"],
+                inventory_id=inventory_id,
+                item_id=item_id,
+                first_cost=item_data["cost"],
+            )
+            all_items.append(steam_items_in_inventory)
+    session.add_all(all_items)
     await session.commit()
 
 
@@ -134,13 +161,22 @@ async def add_initial_data(message, session, steam_id, steam_name):
         steam_id=steam_id_from_db.id,
         session=session,
     )
-    items_dict, classid_dict = get_inventory_info_test_data(inventory_json)
-    await create_all_steam_items(items_dict, session=session)
+    """This is where the code is for getting all the items from each specific game"""
+    # for game_id in all_games_info.keys():
+    #     inventory_game_data = get_steam_inventory(steam_id=steam_id, game_id=game_id)
+    #     all_items_info = get_inventory_info(inventory_game_data)
+    #     inventory_id = await get_inventorys_id_from_db(
+    #         session=session, steam_id=steam_id_from_db.id
+    #     )
+    #     await create_all_items(all_items_info, inventory_id=inventory_id.id, session=session)
+
+    """This is where the code is for getting items for a specific game with test data"""
     inventory_id = await get_inventorys_id_from_db(
         session=session, steam_id=steam_id_from_db.id
     )
-    await create_steam_items_in_inventory(
-        classid_dict, inventory_id=inventory_id.id, session=session
+    all_items_info = get_inventory_info(inventory_json)
+    await create_all_items(
+        all_items_info, inventory_id=inventory_id.id, session=session
     )
 
 
@@ -182,13 +218,6 @@ async def create_item_track(
 ) -> None:
     market_hash_name = get_item_market_hash_name(item_id=item_id)
     first_item_cost = get_item_cost(name=market_hash_name)
-    print("--------------------------------------------------------")
-    print("--------------------------------------------------------")
-    print("--------------------------------------------------------")
-    print(f"{first_item_cost} - это в create")
-    print("--------------------------------------------------------")
-    print("--------------------------------------------------------")
-    print("--------------------------------------------------------")
     check_item = await get_item_from_db(item_id=item_id, session=session)
     if check_item is None:
         await create_item(
