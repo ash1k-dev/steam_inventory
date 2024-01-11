@@ -6,7 +6,7 @@ from methods.request import get_all_user_from_db, get_changes
 from methods.update import update_all_items_and_games, update_redis
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from config import URL_FOR_STEAM_GAME, URL_FOR_STEAM_ITEM
+from config import FLOATING_POINT_VARIABLE, URL_FOR_STEAM_GAME, URL_FOR_STEAM_ITEM
 from core.bot.utils.templates import TEXT_CHANGING
 
 
@@ -61,9 +61,9 @@ async def check_items(item_data):
         difference_for_item = item_cost - first_item_cost
         items_info += TEXT_CHANGING.substitute(
             name=name,
-            first_cost=first_item_cost,
-            cost=item_cost,
-            difference=difference_for_item,
+            first_cost=first_item_cost / FLOATING_POINT_VARIABLE,
+            cost=item_cost / FLOATING_POINT_VARIABLE,
+            difference=difference_for_item / FLOATING_POINT_VARIABLE,
             difference_percents=int((difference_for_item / first_item_cost) * 100),
             link=markdown.hlink("SteamLink", f"{URL_FOR_STEAM_ITEM}{quote(name)}"),
         )
@@ -76,9 +76,9 @@ async def check_tracking_games(tracking_games):
         difference_for_tracking_games = game_cost - first_game_cost
         tracking_games_info += TEXT_CHANGING.substitute(
             name=name,
-            first_cost=first_game_cost,
-            cost=game_cost,
-            difference=difference_for_tracking_games,
+            first_cost=first_game_cost / FLOATING_POINT_VARIABLE,
+            cost=game_cost / FLOATING_POINT_VARIABLE,
+            difference=difference_for_tracking_games / FLOATING_POINT_VARIABLE,
             difference_percents=int(
                 (difference_for_tracking_games / first_game_cost) * 100
             ),
@@ -93,9 +93,9 @@ async def check_tracking_items(tracking_items):
         difference_for_tracking_items = item_cost - first_item_cost
         tracking_items_info += TEXT_CHANGING.substitute(
             name=name,
-            first_cost=first_item_cost,
-            cost=item_cost,
-            difference=difference_for_tracking_items,
+            first_cost=first_item_cost / FLOATING_POINT_VARIABLE,
+            cost=item_cost / FLOATING_POINT_VARIABLE,
+            difference=difference_for_tracking_items / FLOATING_POINT_VARIABLE,
             difference_percents=int(
                 (difference_for_tracking_items / first_item_cost) * 100
             ),

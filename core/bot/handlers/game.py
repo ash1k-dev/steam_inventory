@@ -4,7 +4,7 @@ from aiogram.types import CallbackQuery
 from aiogram.utils import markdown
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import ITEMS_ON_PAGE, URL_FOR_STEAM_GAME
+from config import FLOATING_POINT_VARIABLE, ITEMS_ON_PAGE, URL_FOR_STEAM_GAME
 from core.bot.handlers.templates import TEXT_GAME, TEXT_GAMES_INFO
 from core.bot.keyboards.inline.callback_factory import GamesCallbackFactory
 from core.bot.keyboards.inline.inline import (
@@ -42,7 +42,7 @@ async def get_games(
             text=TEXT_GAMES_INFO.substitute(
                 steam_name=callback_data.steam_name,
                 number_of_games=number_of_games,
-                total_cost=total_cost,
+                total_cost=total_cost / FLOATING_POINT_VARIABLE,
                 time_in_games=time_in_games,
             ),
             reply_markup=get_games_menu(
@@ -90,8 +90,8 @@ async def get_games_text(games) -> tuple[list, list]:
             TEXT_GAME.substitute(
                 game_name=game_name,
                 time_in_game=time_in_game,
-                game_cost=game_cost,
-                first_game_cost=first_game_cost,
+                game_cost=game_cost / FLOATING_POINT_VARIABLE,
+                first_game_cost=first_game_cost / FLOATING_POINT_VARIABLE,
                 link=markdown.hlink("SteamLink", f"{URL_FOR_STEAM_GAME}{game_id}"),
             )
         )

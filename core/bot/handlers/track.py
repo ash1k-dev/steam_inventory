@@ -96,9 +96,10 @@ async def get_tracking_games(
         await callback.message.answer(
             text=TEXT_TRACKING_GAME.substitute(
                 name=game["name"],
-                cost=game["cost"],
-                first_cost=game["first_cost"],
-                difference=game["cost"] - game["first_cost"],
+                cost=game["cost"] / FLOATING_POINT_VARIABLE,
+                first_cost=game["first_cost"] / FLOATING_POINT_VARIABLE,
+                difference=(game["cost"] - game["first_cost"])
+                / FLOATING_POINT_VARIABLE,
                 link=markdown.hlink(
                     "SteamLink", f"{URL_FOR_STEAM_GAME}{callback_data.game_id}"
                 ),

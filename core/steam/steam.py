@@ -22,9 +22,11 @@ def get_game_cost(game_id):
         ]
         game_cost = game_cost.split()[0]
         if "," in game_cost:
-            game_cost = int(game_cost.split(",")[0])
+            game_cost = (
+                round(float(game_cost.replace(",", ".")), 2) * FLOATING_POINT_VARIABLE
+            )
         else:
-            game_cost = int(game_cost)
+            game_cost = int(game_cost) * FLOATING_POINT_VARIABLE
     except KeyError:
         logging.warning(msg=f"Not for sale now or zero cost: {game_id}")
         game_cost = 0
