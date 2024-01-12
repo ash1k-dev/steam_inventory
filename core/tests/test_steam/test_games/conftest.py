@@ -12,15 +12,6 @@ def get_game_requests_mock(monkeypatch):
     return game_requests_mock
 
 
-@pytest.fixture
-def get_games_info_without_cost_mock(monkeypatch):
-    games_info_without_cost_mock = mock.Mock()
-    monkeypatch.setattr(
-        "core.steam.steam.get_games_info_without_cost", games_info_without_cost_mock
-    )
-    return games_info_without_cost_mock
-
-
 def game_cost_mock(game_id):
     game_cost_dict = GAME_COST_DICT
     return game_cost_dict.get(game_id)

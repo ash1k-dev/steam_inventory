@@ -64,29 +64,6 @@ def get_steam_name(steam_id):
     return steam_name
 
 
-def get_games_info_without_cost(steam_id: int) -> dict:
-    url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/"
-    games_id_full = requests.get(
-        url,
-        params={
-            "key": APIKEY,
-            "steamid": steam_id,
-            "include_appinfo": 1,
-        },
-    )
-    games_id = {}
-    for id in games_id_full.json()["response"]["games"]:
-        if id["playtime_forever"] == 0:
-            time = 0
-        else:
-            time = round(id["playtime_forever"] / 60, 1)
-        games_id[id["appid"]] = {
-            "name": id["name"],
-            "time": time,
-        }
-    return games_id
-
-
 def get_steam_inventory(steam_id: int, game_id: int = 730) -> dict:
     url = f"https://steamcommunity.com/inventory/{steam_id}/{game_id}/2"
     data = requests.get(url)
@@ -119,17 +96,30 @@ def get_item_market_hash_name(item_id, app_id=730):
 
 
 def get_all_games_info(steam_id: int):
-    final_list = {}
-    games_id_list = get_games_info_without_cost(steam_id)
-    for game_id, game_data in games_id_list.items():
-        time = game_data["time"]
-        cost = get_game_cost(game_id)
-        final_list[game_id] = {"name": game_data["name"], "time": time, "cost": cost}
+    url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/"
+    game_ids = requests.get(
+        url,
+        params={
+            "key": APIKEY,
+            "steamid": steam_id,
+            "include_appinfo": 1,
+        },
+    )
+    games_info = {}
+    for id in game_ids.json()["response"]["games"]:
+        if id["playtime_forever"] == 0:
+            time = 0
+        else:
+            time = round(id["playtime_forever"] / 60, 1)
+        games_info[id["appid"]] = {
+            "name": id["name"],
+            "time": time,
+            "cost": get_game_cost(id["appid"]),
+        }
+    return games_info
 
-    return final_list
 
-
-def get_inventory_info(items: dict) -> dict:
+def get_all_items_info(items: dict) -> dict:
     items_info = {}
     for classid in items["assets"]:
         id = int(classid["classid"])
