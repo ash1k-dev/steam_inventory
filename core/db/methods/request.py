@@ -1,5 +1,4 @@
 from aiogram.fsm.storage.redis import RedisStorage
-from redis_data_convert import redis_convert_to_dict
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +15,7 @@ from core.db.models.models import (
     Steam,
     User,
 )
+from core.db.redis_data_convert import redis_convert_to_dict
 
 
 async def get_user_from_db(telegram_id: int, session: AsyncSession):
@@ -88,12 +88,18 @@ async def get_games_info_from_db(
     return result.all()
 
 
-async def get_inventorys_id_from_db(steam_id, session: AsyncSession):
+async def get_inventorys_id_from_db(steam_id, session: AsyncSession, games_id=730):
     statement = select(Inventory).filter(
-        Inventory.steam_id == steam_id, Inventory.games_id == 730
+        Inventory.steam_id == steam_id, Inventory.games_id == games_id
     )
     result = await session.execute(statement)
     return result.scalars().one_or_none()
+
+
+async def get_all_inventory_ids_from_db(steam_id, session: AsyncSession):
+    statement = select(Inventory).filter(Inventory.steam_id == steam_id)
+    result = await session.execute(statement)
+    return result.scalars().all()
 
 
 async def get_items_info_from_db(
@@ -120,11 +126,11 @@ async def get_items_info_from_db(
 
 
 async def get_amount_and_items_info_from_db(
-    session: AsyncSession, steam_id, limit=1000, order="cost"
+    session: AsyncSession, steam_id, limit=1000, order="cost", games_id=730
 ):
     steamid_from_db = await get_steamid_from_db(steam_id=steam_id, session=session)
     inventory_id = await get_inventorys_id_from_db(
-        session=session, steam_id=steamid_from_db.id
+        session=session, steam_id=steamid_from_db.id, games_id=games_id
     )
     statement = (
         select(
@@ -250,6 +256,23 @@ async def get_items_changes(session, user_telegram_id):
         telegram_id=user_telegram_id, session=session
     )
     items = {}
+    """This is where the code is for getting all the items from each specific game"""
+    # for steam_id in all_steam_ids:
+    #     inventory_ids = await get_all_inventory_ids_from_db(
+    #         steam_id=steam_id, session=session
+    #     )
+    #     for inventory in inventory_ids:
+    #         items_info = await get_amount_and_items_info_from_db(
+    #             steam_id=steam_id.steam_id, games_id=inventory.games_id, session=session
+    #         )
+    #         items[f"{steam_id.steam_id}"] = []
+    #         for item in items_info:
+    #             name, item_cost, first_item_cost, _, _ = item
+    #             if item_cost > first_item_cost * float(INCREASE_FACTOR):
+    #                 items[f"{steam_id.steam_id}"].append(
+    #                     (name, item_cost, first_item_cost)
+    #                 )
+    """This is where the code is for getting all the items from specific game"""
     for steam_id in all_steam_ids:
         items_info = await get_amount_and_items_info_from_db(
             steam_id=steam_id.steam_id, session=session
