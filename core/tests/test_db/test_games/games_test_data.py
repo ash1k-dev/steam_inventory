@@ -5,7 +5,6 @@ TEST_DATA_USER = {
     "steam_name": "test_steam_name_1",
 }
 
-
 TEST_DATA_ALL_GAMES_INFO = {
     12210: {
         "name": "Grand Theft Auto IV: The Complete Edition",
@@ -55,7 +54,7 @@ TEST_DATA_ALL_GAMES_INFO = {
     654310: {"name": "For Honor - Public Test", "time": 0, "cost": 0},
 }
 
-TEST_DATA_GAMES = [
+TEST_RESULT_GAMES = [
     (550, "Left 4 Dead 2", 38500, 0, 38500),
     (620, "Portal 2", 38500, 0, 38500),
     (220, "Half-Life 2", 38500, 0, 38500),
@@ -92,9 +91,9 @@ TEST_DATA_GAMES = [
     (12210, "Grand Theft Auto IV: The Complete Edition", 0, 1, 0),
 ]
 
-TEST_DATA_GAMES_INFO = [(34, 675100, 2257)]
+TEST_RESULT_GAMES_INFO = [(34, 675100, 2257)]
 
-TEST_DATA_GAMES_COUNT = 34
+TEST_RESULT_GAMES_COUNT = 34
 
 TEST_DATA_GAMES_ADD = {
     2143601: {"name": "Tower Wars", "cost": 8900},
@@ -106,9 +105,9 @@ LIST_GAMES_CRUD = [
     (
         TEST_DATA_USER,
         TEST_DATA_ALL_GAMES_INFO,
-        TEST_DATA_GAMES,
-        TEST_DATA_GAMES_INFO,
-        TEST_DATA_GAMES_COUNT,
+        TEST_RESULT_GAMES,
+        TEST_RESULT_GAMES_INFO,
+        TEST_RESULT_GAMES_COUNT,
         TEST_DATA_GAMES_ADD,
     )
 ]
@@ -120,13 +119,12 @@ TEST_DATA_ALL_TRACKING_GAMES_INFO = {
     70: {"name": "Half-Life", "time": 0, "first_cost": 25900, "cost": 5900},
 }
 
-TEST_DATA_TRACKING_GAMES_LONG = 3
+TEST_RESULT_TRACKING_GAMES_LONG = 3
 
-
-TEST_DATA_TRACKING_GAMES_CHANGES = [
-    ("Tower Wars", 214360, 18900, 8900),
-    ("Counter-Strike", 10, 25900, 5900),
-    ("Half-Life", 70, 25900, 5900),
+TEST_RESULT_TRACKING_GAMES_CHANGES = [
+    ("Tower Wars", 214360, 18900, 11340),
+    ("Counter-Strike", 10, 25900, 15540),
+    ("Half-Life", 70, 25900, 15540),
 ]
 
 TEST_DATA_TRACKING_GAMES_COST_BEFORE_DECREASE = {214360: 18900, 10: 25900, 70: 25900}
@@ -137,12 +135,11 @@ TEST_DATA_TRACKING_GAMES_NAME = {
     70: "Half-Life",
 }
 
-
 LIST_TRACKING_GAMES_CRUD = [
     (
         TEST_DATA_USER,
         TEST_DATA_ALL_TRACKING_GAMES_INFO,
-        TEST_DATA_TRACKING_GAMES_LONG,
-        TEST_DATA_TRACKING_GAMES_CHANGES,
+        TEST_RESULT_TRACKING_GAMES_LONG,
+        TEST_RESULT_TRACKING_GAMES_CHANGES,
     )
 ]

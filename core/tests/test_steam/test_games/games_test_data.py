@@ -253,9 +253,9 @@ TEST_DATA_GAME_NAME_AND_COST_CASE_1 = {
     }
 }
 
-RESULT_TEST_GAME_NAME_CASE_1 = "Warhammer 40,000: Darktide"
+TEST_RESULT_GAME_NAME_CASE_1 = "Warhammer 40,000: Darktide"
 
-RESULT_TEST_GAME_COST_CASE_1 = 274900
+TEST_RESULT_GAME_COST_CASE_1 = 274900
 
 TEST_GAME_ID_CASE_1 = 1361210
 
@@ -449,9 +449,9 @@ TEST_DATA_GAME_NAME_AND_COST_CASE_2 = {
     }
 }
 
-RESULT_TEST_GAME_NAME_CASE_2 = "God Of Weapons"
+TEST_RESULT_GAME_NAME_CASE_2 = "God Of Weapons"
 
-RESULT_TEST_GAME_COST_CASE_2 = 20300
+TEST_RESULT_GAME_COST_CASE_2 = 20300
 
 TEST_GAME_ID_CASE_2 = 2342950
 
@@ -717,9 +717,9 @@ TEST_DATA_GAME_NAME_AND_COST_CASE_3 = {
     }
 }
 
-RESULT_TEST_GAME_NAME_CASE_3 = "Starship Troopers: Terran Command"
+TEST_RESULT_GAME_NAME_CASE_3 = "Starship Troopers: Terran Command"
 
-RESULT_TEST_GAME_COST_CASE_3 = 71500
+TEST_RESULT_GAME_COST_CASE_3 = 71500
 
 TEST_GAME_ID_CASE_3 = 1202130
 
@@ -727,17 +727,17 @@ TEST_GAME_ID_CASE_3 = 1202130
 LIST_GAME_NAME = [
     (
         TEST_DATA_GAME_NAME_AND_COST_CASE_1,
-        RESULT_TEST_GAME_NAME_CASE_1,
+        TEST_RESULT_GAME_NAME_CASE_1,
         TEST_GAME_ID_CASE_1,
     ),
     (
         TEST_DATA_GAME_NAME_AND_COST_CASE_2,
-        RESULT_TEST_GAME_NAME_CASE_2,
+        TEST_RESULT_GAME_NAME_CASE_2,
         TEST_GAME_ID_CASE_2,
     ),
     (
         TEST_DATA_GAME_NAME_AND_COST_CASE_3,
-        RESULT_TEST_GAME_NAME_CASE_3,
+        TEST_RESULT_GAME_NAME_CASE_3,
         TEST_GAME_ID_CASE_3,
     ),
 ]
@@ -745,17 +745,17 @@ LIST_GAME_NAME = [
 LIST_GAME_COST = [
     (
         TEST_DATA_GAME_NAME_AND_COST_CASE_1,
-        RESULT_TEST_GAME_COST_CASE_1,
+        TEST_RESULT_GAME_COST_CASE_1,
         TEST_GAME_ID_CASE_1,
     ),
     (
         TEST_DATA_GAME_NAME_AND_COST_CASE_2,
-        RESULT_TEST_GAME_COST_CASE_2,
+        TEST_RESULT_GAME_COST_CASE_2,
         TEST_GAME_ID_CASE_2,
     ),
     (
         TEST_DATA_GAME_NAME_AND_COST_CASE_3,
-        RESULT_TEST_GAME_COST_CASE_3,
+        TEST_RESULT_GAME_COST_CASE_3,
         TEST_GAME_ID_CASE_3,
     ),
 ]
@@ -826,6 +826,17 @@ TEST_DATA_ALL_GAMES_INFO = {
                 "rtime_last_played": 0,
                 "playtime_disconnected": 0,
             },
+            {
+                "appid": 730,
+                "name": "Counter-Strike Global",
+                "playtime_forever": 2500,
+                "img_icon_url": "95be6d131fc61f145797317ca437c9765f24b41c",
+                "playtime_windows_forever": 0,
+                "playtime_mac_forever": 0,
+                "playtime_linux_forever": 0,
+                "rtime_last_played": 0,
+                "playtime_disconnected": 0,
+            },
         ],
     }
 }
@@ -840,15 +851,10 @@ RESULT_TEST_ALL_GAMES_INFO = {
     72850: {"name": "The Elder Scrolls V: Skyrim", "time": 57.3, "cost": 0},
     10: {"name": "Counter-Strike", "time": 0.9, "cost": 25900},
     70: {"name": "Half-Life", "time": 0, "cost": 25900},
+    730: {"name": "Counter-Strike Global", "time": 41.7, "cost": 0},
 }
 
 
-GAME_COST_DICT = {
-    12210: 0,
-    214360: 18900,
-    72850: 0,
-    10: 25900,
-    70: 25900,
-}
+GAME_COST_DICT = {12210: 0, 214360: 18900, 72850: 0, 10: 25900, 70: 25900, 730: 0}
 
 LIST_ALL_GAMES_INFO = [(TEST_DATA_ALL_GAMES_INFO, RESULT_TEST_ALL_GAMES_INFO)]
