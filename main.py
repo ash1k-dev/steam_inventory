@@ -6,7 +6,15 @@ from aiogram.fsm.storage.redis import RedisStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from config import DB_URL, REDIS_URL, SCHEDULE_INTERVAL, TOKEN
+from config import (
+    DB_URL,
+    LOG_FILE,
+    LOG_FORMAT,
+    LOG_LEVEL,
+    REDIS_URL,
+    SCHEDULE_INTERVAL,
+    TOKEN,
+)
 from core.bot.handlers import game, item, track, user
 from core.bot.middlewares.db_connection import DbConnection
 from core.bot.middlewares.long_operation import LongOperationMiddleware
@@ -17,10 +25,9 @@ from core.bot.utils.apsheduler import check_update
 async def start():
     """"""
     logging.basicConfig(
-        level=logging.INFO,
-        # filename="inventory_log.log",
-        format="%(asctime)s - [%(levelname)s] - %(name)s - "
-        "(%(filename)s).%(funcName)s(%(lineno)d) - %(message)s",
+        level=logging.getLevelName(LOG_LEVEL),
+        filename=LOG_FILE,
+        format=LOG_FORMAT,
     )
     storage = RedisStorage.from_url(
         url=REDIS_URL, connection_kwargs={"decode_responses": True}

@@ -6,9 +6,13 @@ load_dotenv()
 
 
 DB_URL = os.getenv("DB_URL")
+DB_URL_TEST = os.getenv("DB_URL_TEST")
 APIKEY = os.getenv("APIKEY")
 USER_ID = os.getenv("USER_ID")
 REDIS_URL = os.getenv("REDIS_URL")
+LOG_LEVEL = os.getenv("LOG_LEVEL")
+LOG_FILE = os.getenv("LOG_FILE")
+LOG_FORMAT = os.getenv("LOG_FORMAT")
 
 TOKEN = os.getenv("TOKEN")
 ADMIN_ID = os.getenv("ADMIN_ID")
