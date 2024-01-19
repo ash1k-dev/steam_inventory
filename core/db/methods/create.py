@@ -5,7 +5,7 @@ from core.db.methods.request import (
     get_games_list_from_db,
     get_inventorys_id_from_db,
     get_item_from_db,
-    get_items_list_from_db,
+    get_items_classid_list_from_db,
     get_steamid_from_db,
 )
 from core.db.models.models import (
@@ -21,9 +21,9 @@ from core.db.models.models import (
 )
 from core.steam.steam import (
     get_all_games_info,
+    get_all_items_info,
     get_game_cost,
     get_game_name,
-    get_inventory_info,
     get_item_cost,
     get_item_market_hash_name,
 )
@@ -58,38 +58,6 @@ async def create_all_steam_inventorys(
     await session.commit()
 
 
-async def create_all_steam_items(items_data: dict, session: AsyncSession) -> None:
-    items = []
-    items_list = await get_items_list_from_db(session=session)
-    for item_id, item_data in items_data.items():
-        if int(item_id) not in items_list:
-            steam_item = Item(
-                name=item_data["name"],
-                app_id=item_data["appid"],
-                classid=item_id,
-                cost=item_data["cost"],
-            )
-            items.append(steam_item)
-    session.add_all(items)
-    await session.commit()
-
-
-async def create_steam_items_in_inventory(
-    items_data: dict, inventory_id: int, session: AsyncSession
-):
-    classids = []
-    for classid, data in items_data.items():
-        steam_items_in_inventory = ItemInInventory(
-            amount=data["amount"],
-            inventory_id=inventory_id,
-            item_id=classid,
-            first_cost=data["cost"],
-        )
-        classids.append(steam_items_in_inventory)
-    session.add_all(classids)
-    await session.commit()
-
-
 async def create_all_games(
     all_games_info: dict, steam_id: int, session: AsyncSession
 ) -> None:
@@ -119,7 +87,7 @@ async def create_all_items(
     all_items_info: dict, inventory_id: int, session: AsyncSession
 ) -> None:
     all_items = []
-    items_list = await get_items_list_from_db(session=session)
+    items_list = await get_items_classid_list_from_db(session=session)
     for item_id, item_data in all_items_info.items():
         if item_id not in items_list and item_data["cost"] != 0:
             steam_item = Item(
@@ -164,7 +132,7 @@ async def add_initial_data(message, session, steam_id, steam_name):
     """This is where the code is for getting all the items from each specific game"""
     # for game_id in all_games_info.keys():
     #     inventory_game_data = get_steam_inventory(steam_id=steam_id, game_id=game_id)
-    #     all_items_info = get_inventory_info(inventory_game_data)
+    #     all_items_info = get_all_items_info(inventory_game_data)
     #     inventory_id = await get_inventorys_id_from_db(
     #         session=session, steam_id=steam_id_from_db.id
     #     )
@@ -174,7 +142,7 @@ async def add_initial_data(message, session, steam_id, steam_name):
     inventory_id = await get_inventorys_id_from_db(
         session=session, steam_id=steam_id_from_db.id
     )
-    all_items_info = get_inventory_info(inventory_json)
+    all_items_info = get_all_items_info(inventory_json)
     await create_all_items(
         all_items_info, inventory_id=inventory_id.id, session=session
     )
