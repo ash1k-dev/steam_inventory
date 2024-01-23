@@ -5,15 +5,15 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import CallbackQuery, Message
-from methods.update import update_redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import ERROR_STORAGE_TIME, REPEAT_AFTER_ERROR_TIME
+from config import ADMIN_TELEGRAM_LINK, ERROR_STORAGE_TIME, REPEAT_AFTER_ERROR_TIME
 from core.bot.handlers.templates import (
     TEXT_ADD_STEAM_ERROR,
     TEXT_ADD_STEAM_ERROR_REPEAT,
     TEXT_ADD_STEAM_FINAL,
     TEXT_ADD_STEAM_PROCESS,
+    TEXT_HELP,
     TEXT_STEAM_DELETE,
     TEXT_STEAM_INFO,
 )
@@ -34,6 +34,7 @@ from core.db.methods.request import (
     get_steamid_from_db,
     get_user_from_db,
 )
+from core.db.methods.update import update_redis
 from core.steam.steam import get_steam_id, get_steam_name
 
 router = Router()
@@ -44,7 +45,7 @@ class AddSteam(StatesGroup):
 
 
 @router.message(F.text.in_({"/start", "Назад"}))
-async def get_start(message: Message, session: AsyncSession):
+async def get_start(message: Message, session: AsyncSession) -> None:
     telegram_id = message.from_user.id
     result = await get_user_from_db(telegram_id=telegram_id, session=session)
     if result is None:
@@ -60,7 +61,9 @@ async def get_start(message: Message, session: AsyncSession):
 
 
 @router.message(F.text == "Мои Steam id")
-async def get_steam_ids(message: Message, session: AsyncSession, storage: RedisStorage):
+async def get_steam_ids(
+    message: Message, session: AsyncSession, storage: RedisStorage
+) -> None:
     steam_ids_list = await get_steam_ids_from_redis_or_db(
         session=session, storage=storage, telegram_id=message.from_user.id
     )
@@ -70,8 +73,17 @@ async def get_steam_ids(message: Message, session: AsyncSession, storage: RedisS
     )
 
 
+@router.message(F.text == "Помощь")
+async def get_help(message: Message) -> None:
+    await message.answer(
+        TEXT_HELP.substitute(
+            admin_link=ADMIN_TELEGRAM_LINK, disable_web_page_preview=True
+        )
+    )
+
+
 @router.message(F.text == "Отслеживание стоимости")
-async def get_cost(message: Message):
+async def get_cost(message: Message) -> None:
     await message.answer("Отслеживание стоимости", reply_markup=get_track_menu())
 
 
@@ -82,7 +94,7 @@ async def add_steam_id(
     session: AsyncSession,
     state: FSMContext,
     storage: RedisStorage,
-):
+) -> None:
     try:
         steam_id = get_steam_id(message.text)
         steam_name = get_steam_name(steam_id)
@@ -113,7 +125,7 @@ async def add_steam_id(
                     steam_name=steam_name,
                 )
                 await update_redis(
-                    user_telegram_id=message.from_user.id,
+                    telegram_id=message.from_user.id,
                     session=session,
                     storage=storage,
                 )
@@ -142,7 +154,7 @@ async def processing_add_steam_id_error(
     session: AsyncSession,
     steam_id: int,
     storage: RedisStorage,
-):
+) -> None:
     check_earlier_error = await storage.redis.get(name=str(steam_id))
     left_error_storage_time = await storage.redis.ttl(name=str(steam_id))
     check_creating_steamid = await get_steamid_from_db(
@@ -164,7 +176,7 @@ async def processing_add_steam_id_error(
             error=str(error),
         )
         if check_creating_steamid:
-            await delete_steam_id(steam_id=str(steam_id), session=session)
+            await delete_steam_id(steam_id=steam_id, session=session)
         await storage.redis.delete(str(steam_id))
         await message.answer("Данные о текущей ошибке отправленны администраторам")
     elif (
@@ -187,7 +199,7 @@ async def processing_add_steam_id_error(
         )
         await storage.redis.set(name=str(steam_id), value=1, ex=ERROR_STORAGE_TIME)
         if check_creating_steamid:
-            await delete_steam_id(steam_id=str(steam_id), session=session)
+            await delete_steam_id(steam_id=steam_id, session=session)
         await message.answer(
             TEXT_ADD_STEAM_ERROR.substitute(
                 steam_id=message.text,
@@ -203,12 +215,12 @@ async def get_steam(
     session: AsyncSession,
     state: FSMContext,
     storage: RedisStorage,
-):
+) -> None:
     if callback_data.action == "info":
         await callback.message.answer(
             text=f"Данные профиля {callback_data.steam_name}:",
             reply_markup=get_steam_id_menu(
-                callback_data.steam_name, callback_data.steam_id
+                steamid_name=callback_data.steam_name, steamid_id=callback_data.steam_id
             ),
         )
         await callback.answer()
@@ -216,7 +228,7 @@ async def get_steam(
         await delete_steam_id(steam_id=callback_data.steam_id, session=session)
         await callback.message.delete()
         await update_redis(
-            user_telegram_id=callback.from_user.id, session=session, storage=storage
+            telegram_id=callback.from_user.id, session=session, storage=storage
         )
         await callback.message.answer(
             TEXT_STEAM_DELETE.substitute(
@@ -230,7 +242,7 @@ async def get_steam(
                 steam_id=callback_data.steam_id, steam_name=callback_data.steam_name
             ),
             reply_markup=get_control_menu(
-                callback_data.steam_name, callback_data.steam_id
+                steamid_name=callback_data.steam_name, steamid_id=callback_data.steam_id
             ),
         )
         await callback.answer()
