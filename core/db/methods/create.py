@@ -1,9 +1,10 @@
+from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db.methods.request import (
     get_game_from_db,
     get_games_list_from_db,
-    get_inventorys_id_from_db,
+    get_inventories_id_from_db,
     get_item_from_db,
     get_items_classid_list_from_db,
     get_steamid_from_db,
@@ -44,9 +45,9 @@ async def create_steam(
     await session.commit()
 
 
-async def create_all_steam_inventorys(
+async def create_all_steam_inventories(
     all_games_info: dict, steam_id: int, session: AsyncSession
-):
+) -> None:
     all_inventory = []
     for game_id in all_games_info:
         steam_inventory = Inventory(
@@ -110,7 +111,9 @@ async def create_all_items(
     await session.commit()
 
 
-async def add_initial_data(message, session, steam_id, steam_name):
+async def add_initial_data(
+    message: Message, session: AsyncSession, steam_id: int, steam_name: str
+) -> None:
     await create_steam(
         telegram_id=message.from_user.id,
         steam_id=steam_id,
@@ -124,7 +127,7 @@ async def add_initial_data(message, session, steam_id, steam_name):
         steam_id=steam_id_from_db.id,
         session=session,
     )
-    await create_all_steam_inventorys(
+    await create_all_steam_inventories(
         all_games_info=all_games_info,
         steam_id=steam_id_from_db.id,
         session=session,
@@ -139,7 +142,7 @@ async def add_initial_data(message, session, steam_id, steam_name):
     #     await create_all_items(all_items_info, inventory_id=inventory_id.id, session=session)
 
     """This is where the code is for getting items for a specific game with test data"""
-    inventory_id = await get_inventorys_id_from_db(
+    inventory_id = await get_inventories_id_from_db(
         session=session, steam_id=steam_id_from_db.id
     )
     all_items_info = get_all_items_info(inventory_json)
@@ -149,7 +152,7 @@ async def add_initial_data(message, session, steam_id, steam_name):
 
 
 async def create_game(
-    game_id: int, game_name, game_cost, session: AsyncSession
+    game_id: int, game_name: str, game_cost: float, session: AsyncSession
 ) -> None:
     game = Game(name=game_name, game_id=game_id, cost=game_cost)
     session.add(game)
@@ -174,7 +177,7 @@ async def create_game_track(
 
 
 async def create_item(
-    name: str, item_id: int, item_cost, session: AsyncSession
+    name: str, item_id: int, item_cost: float, session: AsyncSession
 ) -> None:
     game = Item(name=name, classid=item_id, cost=item_cost)
     session.add(game)

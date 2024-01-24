@@ -1,7 +1,8 @@
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db.methods.create import (
-    create_all_steam_inventorys,
+    create_all_steam_inventories,
     create_steam,
     create_user,
 )
@@ -10,7 +11,7 @@ from core.db.methods.request import (
     get_all_inventory_ids_from_db,
     get_all_steam_ids_from_db,
     get_all_user_from_db,
-    get_inventorys_id_from_db,
+    get_inventories_id_from_db,
     get_steamid_from_db,
     get_user_from_db,
 )
@@ -27,8 +28,11 @@ from core.tests.test_db.test_users.users_test_data import (
 )
 @pytest.mark.asyncio
 async def test_user_crud(
-    test_data_user, test_result_users_len, test_data_user_not_exist, session
-):
+    test_data_user: list,
+    test_result_users_len: int,
+    test_data_user_not_exist: int,
+    session: AsyncSession,
+) -> None:
     for user in test_data_user:
         await create_user(
             name=user["name"], telegram_id=user["telegram_id"], session=session
@@ -55,12 +59,12 @@ async def test_user_crud(
 )
 @pytest.mark.asyncio
 async def test_steam_id_crud(
-    test_data_steam_id,
-    test_result_len_before,
-    test_result_len_after,
-    test_data_steam_id_not_exist,
-    session,
-):
+    test_data_steam_id: list,
+    test_result_len_before: int,
+    test_result_len_after: int,
+    test_data_steam_id_not_exist: int,
+    session: AsyncSession,
+) -> None:
     await create_user(
         name=test_data_steam_id[0]["steam_name"],
         telegram_id=test_data_steam_id[0]["telegram_id"],
@@ -104,12 +108,12 @@ async def test_steam_id_crud(
 )
 @pytest.mark.asyncio
 async def test_inventory_crud(
-    test_data_inventory,
-    test_data_games,
-    test_result_len_before,
-    test_result_len_after,
-    test_data_inventory_not_exist,
-    session,
+    test_data_inventory: dict,
+    test_data_games: dict,
+    test_result_len_before: int,
+    test_result_len_after: int,
+    test_data_inventory_not_exist: int,
+    session: AsyncSession,
 ):
     await create_user(
         name=test_data_inventory["name"],
@@ -125,7 +129,7 @@ async def test_inventory_crud(
     steam = await get_steamid_from_db(
         steam_id=test_data_inventory["steam_id"], session=session
     )
-    await create_all_steam_inventorys(
+    await create_all_steam_inventories(
         all_games_info=test_data_games, steam_id=steam.id, session=session
     )
     all_inventory = await get_all_inventory_ids_from_db(
@@ -133,12 +137,12 @@ async def test_inventory_crud(
     )
     assert len(all_inventory) == test_result_len_before
     for game_id in test_data_games:
-        inventory = await get_inventorys_id_from_db(
+        inventory = await get_inventories_id_from_db(
             steam_id=steam.id, games_id=game_id, session=session
         )
         assert inventory.games_id == game_id
         assert inventory.steam_id == steam.id
-    inventory_not_exist = await get_inventorys_id_from_db(
+    inventory_not_exist = await get_inventories_id_from_db(
         steam_id=steam.id,
         games_id=test_data_inventory_not_exist,
         session=session,

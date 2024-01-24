@@ -1,9 +1,16 @@
+from typing import Sequence
+
 from aiogram.fsm.storage.redis import RedisStorage
-from sqlalchemy import desc, func, select
+from sqlalchemy import Row, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import DEPRECIATION_FACTOR, INCREASE_FACTOR
-from core.bot.keyboards.inline.callback_factory import GamesCallbackFactory
+from core.bot.keyboards.inline.callback_factory import (
+    GamesCallbackFactory,
+    GamesTrackCallbackFactory,
+    ItemsCallbackFactory,
+    ItemsTrackCallbackFactory,
+)
 from core.db.models.models import (
     Game,
     GameInAccount,
@@ -18,7 +25,7 @@ from core.db.models.models import (
 from core.db.redis_data_convert import redis_convert_to_dict
 
 
-async def get_user_from_db(telegram_id: int, session: AsyncSession):
+async def get_user_from_db(telegram_id: int, session: AsyncSession) -> User:
     statement = select(User).where(User.telegram_id == telegram_id)
     result = await session.execute(statement)
     return result.scalars().one_or_none()
@@ -30,7 +37,7 @@ async def get_all_user_from_db(session: AsyncSession):
     return result.scalars().all()
 
 
-async def get_steamid_from_db(steam_id: int, session: AsyncSession):
+async def get_steamid_from_db(steam_id: int, session: AsyncSession) -> Steam:
     statement = select(Steam).where(Steam.steam_id == steam_id)
     result = await session.execute(statement)
     return result.scalars().one_or_none()
@@ -47,7 +54,7 @@ async def get_games_from_db(
     session: AsyncSession,
     limit: int = 1000,
     order: str = "cost",
-):
+) -> Sequence[Row]:
     steam_id = await get_steamid_from_db(steam_id=steam_id, session=session)
     statement = (
         select(
@@ -69,7 +76,7 @@ async def get_games_from_db(
 async def get_games_info_from_db(
     session: AsyncSession,
     steam_id,
-):
+) -> Sequence[Row]:
     steamid_from_db = await get_steamid_from_db(steam_id=steam_id, session=session)
     statement = (
         select(
@@ -88,7 +95,9 @@ async def get_games_info_from_db(
     return result.all()
 
 
-async def get_inventorys_id_from_db(steam_id, session: AsyncSession, games_id=730):
+async def get_inventories_id_from_db(
+    steam_id, session: AsyncSession, games_id=730
+) -> Inventory:
     statement = select(Inventory).filter(
         Inventory.steam_id == steam_id, Inventory.games_id == games_id
     )
@@ -96,7 +105,9 @@ async def get_inventorys_id_from_db(steam_id, session: AsyncSession, games_id=73
     return result.scalars().one_or_none()
 
 
-async def get_all_inventory_ids_from_db(steam_id, session: AsyncSession):
+async def get_all_inventory_ids_from_db(
+    steam_id, session: AsyncSession
+) -> Sequence[Row]:
     statement = select(Inventory).filter(Inventory.steam_id == steam_id)
     result = await session.execute(statement)
     return result.scalars().all()
@@ -105,9 +116,9 @@ async def get_all_inventory_ids_from_db(steam_id, session: AsyncSession):
 async def get_items_info_from_db(
     session: AsyncSession,
     steam_id,
-):
+) -> Sequence[Row]:
     steamid_from_db = await get_steamid_from_db(steam_id=steam_id, session=session)
-    inventory_id = await get_inventorys_id_from_db(
+    inventory_id = await get_inventories_id_from_db(
         session=session, steam_id=steamid_from_db.id
     )
     statement = (
@@ -126,10 +137,10 @@ async def get_items_info_from_db(
 
 
 async def get_amount_and_items_info_from_db(
-    session: AsyncSession, steam_id, limit=1000, order="cost", games_id=730
-):
+    session: AsyncSession, steam_id: int, limit=1000, order="cost", games_id=730
+) -> Sequence[Row]:
     steamid_from_db = await get_steamid_from_db(steam_id=steam_id, session=session)
-    inventory_id = await get_inventorys_id_from_db(
+    inventory_id = await get_inventories_id_from_db(
         session=session, steam_id=steamid_from_db.id, games_id=games_id
     )
     statement = (
@@ -149,7 +160,7 @@ async def get_amount_and_items_info_from_db(
     return result.all()
 
 
-async def get_items_list_from_db(
+async def get_items_classid_list_from_db(
     session: AsyncSession,
 ):
     statement = select(Item.classid)
@@ -165,7 +176,9 @@ async def get_games_list_from_db(
     return result.scalars().all()
 
 
-async def get_all_tracking_items_from_db(telegram_id: int, session: AsyncSession):
+async def get_all_tracking_items_from_db(
+    telegram_id: int, session: AsyncSession
+) -> Sequence[Row]:
     statement = (
         select(
             ItemTrack.name,
@@ -180,7 +193,9 @@ async def get_all_tracking_items_from_db(telegram_id: int, session: AsyncSession
     return result.all()
 
 
-async def get_all_tracking_games_from_db(telegram_id: int, session: AsyncSession):
+async def get_all_tracking_games_from_db(
+    telegram_id: int, session: AsyncSession
+) -> Sequence[Row]:
     statement = (
         select(
             GameTrack.name,
@@ -195,25 +210,27 @@ async def get_all_tracking_games_from_db(telegram_id: int, session: AsyncSession
     return result.all()
 
 
-async def get_tracking_game_from_db(game_id: int, session: AsyncSession):
+async def get_tracking_game_from_db(game_id: int, session: AsyncSession) -> GameTrack:
     statement = select(GameTrack).where(GameTrack.game_id == game_id)
     result = await session.execute(statement)
     return result.scalars().one_or_none()
 
 
-async def get_game_from_db(game_id: int, session: AsyncSession):
+async def get_game_from_db(game_id: int, session: AsyncSession) -> Game:
     statement = select(Game).where(Game.game_id == game_id)
     result = await session.execute(statement)
     return result.scalars().one_or_none()
 
 
-async def get_tracking_item_from_db(item_id: int, session: AsyncSession):
+async def get_tracking_item_from_db(item_id: int, session: AsyncSession) -> ItemTrack:
     statement = select(ItemTrack).where(ItemTrack.item_id == item_id)
     result = await session.execute(statement)
     return result.scalars().one_or_none()
 
 
-async def get_tracking_item_data_from_db(item_id: int, session: AsyncSession):
+async def get_tracking_item_data_from_db(
+    item_id: int, session: AsyncSession
+) -> Sequence[Row]:
     statement = (
         select(ItemTrack.name, ItemTrack.first_cost, Item.cost)
         .join(Item, ItemTrack.item_id == Item.classid)
@@ -223,7 +240,9 @@ async def get_tracking_item_data_from_db(item_id: int, session: AsyncSession):
     return result.all()
 
 
-async def get_tracking_game_data_from_db(game_id: int, session: AsyncSession):
+async def get_tracking_game_data_from_db(
+    game_id: int, session: AsyncSession
+) -> Sequence[Row]:
     statement = (
         select(GameTrack.name, GameTrack.first_cost, Game.cost)
         .join(Game, GameTrack.game_id == Game.game_id)
@@ -233,27 +252,27 @@ async def get_tracking_game_data_from_db(game_id: int, session: AsyncSession):
     return result.all()
 
 
-async def get_item_from_db(item_id: int, session: AsyncSession):
+async def get_item_from_db(item_id: int, session: AsyncSession) -> Item:
     statement = select(Item).where(Item.classid == item_id)
     result = await session.execute(statement)
     return result.scalars().one_or_none()
 
 
-async def get_all_items_from_db(session: AsyncSession):
+async def get_all_items_from_db(session: AsyncSession) -> Sequence[Item]:
     statement = select(Item)
     result = await session.execute(statement)
     return result.scalars().all()
 
 
-async def get_all_games_from_db(session: AsyncSession):
+async def get_all_games_from_db(session: AsyncSession) -> Sequence[Game]:
     statement = select(Game)
     result = await session.execute(statement)
     return result.scalars().all()
 
 
-async def get_items_changes(session, user_telegram_id):
+async def get_items_changes(session: AsyncSession, telegram_id: int) -> dict:
     all_steam_ids = await get_all_steam_ids_from_db(
-        telegram_id=user_telegram_id, session=session
+        telegram_id=telegram_id, session=session
     )
     items = {}
     """This is where the code is for getting all the items from each specific game"""
@@ -280,50 +299,57 @@ async def get_items_changes(session, user_telegram_id):
         items[f"{steam_id.steam_id}"] = []
         for item in items_info:
             name, item_cost, first_item_cost, _, _ = item
-            if item_cost > first_item_cost * float(INCREASE_FACTOR):
+            if item_cost >= first_item_cost * INCREASE_FACTOR:
                 items[f"{steam_id.steam_id}"].append((name, item_cost, first_item_cost))
     return items
 
 
-async def get_tracking_items_changes(session, user_telegram_id):
+async def get_tracking_items_changes(
+    session: AsyncSession, telegram_id: int
+) -> list[tuple]:
     all_tracking_items = await get_all_tracking_items_from_db(
-        telegram_id=user_telegram_id, session=session
+        telegram_id=telegram_id, session=session
     )
     tracking_items = []
     for tracking_item in all_tracking_items:
         name, item_id, first_item_cost, item_cost = tracking_item
-        if item_cost < first_item_cost * float(DEPRECIATION_FACTOR):
+        if item_cost <= first_item_cost * DEPRECIATION_FACTOR:
             tracking_items.append((name, item_id, first_item_cost, item_cost))
     return tracking_items
 
 
-async def get_tracking_games_changes(user_telegram_id, session):
+async def get_tracking_games_changes(
+    telegram_id: int, session: AsyncSession
+) -> list[tuple]:
     all_tracking_games = await get_all_tracking_games_from_db(
-        telegram_id=user_telegram_id, session=session
+        telegram_id=telegram_id, session=session
     )
     tracking_games = []
     for tracking_game in all_tracking_games:
         name, game_id, first_game_cost, game_cost = tracking_game
-        if game_cost < first_game_cost * float(DEPRECIATION_FACTOR):
+        if game_cost <= first_game_cost * DEPRECIATION_FACTOR:
             tracking_games.append((name, game_id, first_game_cost, game_cost))
     return tracking_games
 
 
-async def get_changes(user_telegram_id, session):
-    items_changes = await get_items_changes(
-        user_telegram_id=user_telegram_id, session=session
-    )
+async def get_changes(telegram_id: int, session: AsyncSession) -> tuple:
+    items_changes = await get_items_changes(telegram_id=telegram_id, session=session)
     get_tracking_items = await get_tracking_items_changes(
-        user_telegram_id=user_telegram_id, session=session
+        telegram_id=telegram_id, session=session
     )
     get_tracking_games = await get_tracking_games_changes(
-        user_telegram_id=user_telegram_id,
+        telegram_id=telegram_id,
         session=session,
     )
     return get_tracking_items, get_tracking_games, items_changes
 
 
-async def get_items_list_from_redis_or_db(callback_data, session, telegram_id, storage):
+async def get_items_list_from_redis_or_db(
+    callback_data: ItemsCallbackFactory,
+    session: AsyncSession,
+    telegram_id: int,
+    storage: RedisStorage,
+) -> list[tuple]:
     user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
     if user_data:
         all_items = []
@@ -347,7 +373,12 @@ async def get_items_list_from_redis_or_db(callback_data, session, telegram_id, s
     return all_items
 
 
-async def get_items_info_from_redis_or_db(session, callback_data, telegram_id, storage):
+async def get_items_info_from_redis_or_db(
+    session: AsyncSession,
+    callback_data: ItemsCallbackFactory,
+    telegram_id: int,
+    storage: RedisStorage,
+) -> tuple:
     user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
     if user_data:
         items_info = user_data["steam_ids"][f"{callback_data.steam_id}"]["items_info"]
@@ -385,9 +416,7 @@ async def get_games_info_from_redis_or_db(
     telegram_id: int,
     storage: RedisStorage,
 ) -> tuple:
-    user_data = await redis_convert_to_dict(
-        telegram_id=f"{telegram_id}", storage=storage
-    )
+    user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
     if user_data:
         games_info = user_data["steam_ids"][f"{callback_data.steam_id}"]["games_info"]
         number_of_games = games_info["number_of_games"]
@@ -407,9 +436,7 @@ async def get_games_list_from_redis_or_db(
     telegram_id: int,
     storage: RedisStorage,
 ) -> list[tuple]:
-    user_data = await redis_convert_to_dict(
-        telegram_id=f"{telegram_id}", storage=storage
-    )
+    user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
     if user_data:
         games_list = []
         games = user_data["steam_ids"][f"{callback_data.steam_id}"]["games"]
@@ -432,7 +459,9 @@ async def get_games_list_from_redis_or_db(
     return games_list
 
 
-async def get_tracking_items_list_from_redis_or_db(session, telegram_id, storage):
+async def get_tracking_items_list_from_redis_or_db(
+    session: AsyncSession, telegram_id: int, storage: RedisStorage
+) -> list[tuple]:
     user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
     if user_data:
         tracking_items = user_data["tracking_items"]
@@ -453,7 +482,9 @@ async def get_tracking_items_list_from_redis_or_db(session, telegram_id, storage
     return tracking_items_list
 
 
-async def get_tracking_games_list_from_redis_or_db(session, telegram_id, storage):
+async def get_tracking_games_list_from_redis_or_db(
+    session: AsyncSession, telegram_id: int, storage: RedisStorage
+) -> list[tuple]:
     user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
     if user_data:
         tracking_items = user_data["tracking_games"]
@@ -475,8 +506,11 @@ async def get_tracking_games_list_from_redis_or_db(session, telegram_id, storage
 
 
 async def get_tracking_game_from_redis_or_db(
-    telegram_id, callback_data, session, storage
-):
+    telegram_id: int,
+    callback_data: GamesTrackCallbackFactory,
+    session: AsyncSession,
+    storage: RedisStorage,
+) -> dict:
     user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
     if user_data:
         game = user_data["tracking_games"][str(callback_data.game_id)]
@@ -490,8 +524,11 @@ async def get_tracking_game_from_redis_or_db(
 
 
 async def get_tracking_item_from_redis_or_db(
-    telegram_id, callback_data, session, storage
-):
+    telegram_id: int,
+    callback_data: ItemsTrackCallbackFactory,
+    session: AsyncSession,
+    storage: RedisStorage,
+) -> tuple:
     user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
     if user_data:
         item = user_data["tracking_items"][str(callback_data.item_id)]
@@ -506,7 +543,9 @@ async def get_tracking_item_from_redis_or_db(
     return item, name
 
 
-async def get_steam_ids_from_redis_or_db(session, storage, telegram_id):
+async def get_steam_ids_from_redis_or_db(
+    session: AsyncSession, storage: RedisStorage, telegram_id: int
+) -> list[tuple]:
     user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
     if user_data:
         steam_ids_list = user_data["steam_ids"]["ids"]
@@ -518,7 +557,9 @@ async def get_steam_ids_from_redis_or_db(session, storage, telegram_id):
     return steam_ids_list
 
 
-async def check_game_exist_in_redis_or_db(telegram_id, game_id, session, storage):
+async def check_game_exist_in_redis_or_db(
+    telegram_id: int, game_id: str, session: AsyncSession, storage: RedisStorage
+) -> bool:
     user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
     if user_data:
         tracking_games = user_data["tracking_games"]
@@ -530,7 +571,9 @@ async def check_game_exist_in_redis_or_db(telegram_id, game_id, session, storage
     return check_game
 
 
-async def check_item_exist_in_redis_or_db(telegram_id, item_id, session, storage):
+async def check_item_exist_in_redis_or_db(
+    telegram_id: int, item_id: str, session: AsyncSession, storage: RedisStorage
+) -> bool:
     user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
     if user_data:
         tracking_items = user_data["tracking_items"]
@@ -542,7 +585,9 @@ async def check_item_exist_in_redis_or_db(telegram_id, item_id, session, storage
     return check_game
 
 
-async def check_steam_id_exist_in_redis_or_db(session, steam_id, storage, telegram_id):
+async def check_steam_id_exist_in_redis_or_db(
+    session: AsyncSession, steam_id: int, storage: RedisStorage, telegram_id: int
+) -> bool:
     user_data = await redis_convert_to_dict(telegram_id=telegram_id, storage=storage)
     if user_data:
         steam_ids = user_data["steam_ids"]

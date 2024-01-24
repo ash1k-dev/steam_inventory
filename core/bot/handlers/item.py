@@ -28,7 +28,7 @@ async def get_items(
     callback_data: ItemsCallbackFactory,
     session: AsyncSession,
     storage: RedisStorage,
-):
+) -> None:
     if callback_data.action == "info" or callback_data.action == "back":
         (
             difference_total_cost,
@@ -96,7 +96,7 @@ async def get_items(
     await callback.answer()
 
 
-async def get_items_text(items):
+async def get_items_text(items: list) -> tuple[list, list]:
     items_list = []
     grouped_items_list = []
     for item_name, item_cost, first_item_cost, amount, difference in items:

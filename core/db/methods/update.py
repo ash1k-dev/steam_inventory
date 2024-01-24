@@ -1,6 +1,7 @@
 from random import randrange
 from time import sleep
 
+from aiogram.fsm.storage.redis import RedisStorage
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from config import START_RANGE_SLEEP, STOP_RANGE_SLEEP, STORAGE_TIME
@@ -44,19 +45,21 @@ async def update_all_games(session: AsyncSession):
     await session.commit()
 
 
-async def update_all_items_and_games(session):
+async def update_all_items_and_games(session) -> None:
     await update_all_items(session=session)
     await update_all_games(session=session)
 
 
-async def update_tracking_redis(session, tracking_type, user_telegram_id):
+async def update_tracking_redis(
+    session: AsyncSession, tracking_type: str, telegram_id: int
+) -> dict:
     tracking_type_dict = {
         "tracking_items": get_all_tracking_items_from_db,
         "tracking_games": get_all_tracking_games_from_db,
     }
     current_type_func = tracking_type_dict.get(tracking_type)
     all_items_or_games = await current_type_func(
-        telegram_id=user_telegram_id, session=session
+        telegram_id=telegram_id, session=session
     )
     tracking_items_redis = {}
     for item in all_items_or_games:
@@ -75,7 +78,7 @@ async def update_tracking_redis(session, tracking_type, user_telegram_id):
     return tracking_items_redis
 
 
-async def update_items_redis(session, steam_id):
+async def update_items_redis(session: AsyncSession, steam_id: int) -> dict:
     all_items = await get_amount_and_items_info_from_db(
         session=session, steam_id=steam_id, limit=1000
     )
@@ -96,7 +99,7 @@ async def update_items_redis(session, steam_id):
     return tracking_items_redis
 
 
-async def update_games_redis(session, steam_id):
+async def update_games_redis(session: AsyncSession, steam_id: int) -> dict:
     all_items = await get_games_from_db(session=session, steam_id=steam_id)
     tracking_items_redis = {}
     for item in all_items:
@@ -117,7 +120,7 @@ async def update_games_redis(session, steam_id):
     return tracking_items_redis
 
 
-async def update_items_info_redis(session, steam_id):
+async def update_items_info_redis(session: AsyncSession, steam_id: int) -> dict:
     items_data = await get_items_info_from_db(session=session, steam_id=steam_id)
     total_cost, first_total_cost, total_amount, max_cost, min_cost = items_data[0]
     items_info = {
@@ -130,7 +133,7 @@ async def update_items_info_redis(session, steam_id):
     return items_info
 
 
-async def update_games_info_redis(session, steam_id):
+async def update_games_info_redis(session: AsyncSession, steam_id: int) -> dict:
     games_data = await get_games_info_from_db(session=session, steam_id=steam_id)
     number_of_games, total_cost, time_in_games = games_data[0]
     games_info = {
@@ -142,20 +145,20 @@ async def update_games_info_redis(session, steam_id):
 
 
 async def update_redis(
-    user_telegram_id, session: async_sessionmaker | AsyncSession, storage
-):
+    telegram_id, session: async_sessionmaker | AsyncSession, storage: RedisStorage
+) -> None:
     tracking_items = await update_tracking_redis(
         session=session,
-        user_telegram_id=user_telegram_id,
+        telegram_id=telegram_id,
         tracking_type="tracking_items",
     )
     tracking_games = await update_tracking_redis(
         session=session,
-        user_telegram_id=user_telegram_id,
+        telegram_id=telegram_id,
         tracking_type="tracking_games",
     )
     all_steam_ids = await get_all_steam_ids_from_db(
-        telegram_id=user_telegram_id, session=session
+        telegram_id=telegram_id, session=session
     )
     all_items_and_games = {}
     all_items_and_games["ids"] = {steam_id: name for steam_id, name in all_steam_ids}
@@ -179,7 +182,7 @@ async def update_redis(
         all_items_and_games.update(update_items_steam)
 
     user_data = {
-        f"{user_telegram_id}": {
+        f"{telegram_id}": {
             "tracking_items": tracking_items,
             "tracking_games": tracking_games,
             "steam_ids": all_items_and_games,

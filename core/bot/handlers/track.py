@@ -39,7 +39,7 @@ from core.db.methods.request import (
     get_tracking_item_from_redis_or_db,
     get_tracking_items_list_from_redis_or_db,
 )
-from core.steam.steam import get_game_name, get_item_market_hash_name
+from core.steam.steam import get_game_cost, get_game_name, get_item_market_hash_name
 
 router = Router()
 
@@ -55,7 +55,7 @@ class AddItemTrack(StatesGroup):
 @router.message(F.text == "Предметы")
 async def get_tracking_items(
     message: Message, session: AsyncSession, storage: RedisStorage
-):
+) -> None:
     tracking_items_list = await get_tracking_items_list_from_redis_or_db(
         session=session, telegram_id=message.from_user.id, storage=storage
     )
@@ -68,7 +68,7 @@ async def get_tracking_items(
 @router.message(F.text == "Игры")
 async def get_tracking_games(
     message: Message, session: AsyncSession, storage: RedisStorage
-):
+) -> None:
     tracking_games_list = await get_tracking_games_list_from_redis_or_db(
         session=session, telegram_id=message.from_user.id, storage=storage
     )
@@ -85,7 +85,7 @@ async def get_tracking_games(
     session: AsyncSession,
     state: FSMContext,
     storage: RedisStorage,
-):
+) -> None:
     if callback_data.action == "tracking_game":
         game = await get_tracking_game_from_redis_or_db(
             telegram_id=callback.from_user.id,
@@ -111,7 +111,7 @@ async def get_tracking_games(
         await delete_tracking_game(game_id=callback_data.game_id, session=session)
         await callback.message.delete()
         await update_redis(
-            user_telegram_id=callback.from_user.id, session=session, storage=storage
+            telegram_id=callback.from_user.id, session=session, storage=storage
         )
         await callback.message.answer(text="Игра успешно удалена")
         await callback.answer()
@@ -130,7 +130,7 @@ async def get_tracking_games(
         )
         await state.clear()
         await update_redis(
-            user_telegram_id=callback.from_user.id, session=session, storage=storage
+            telegram_id=callback.from_user.id, session=session, storage=storage
         )
         await callback.message.answer(
             text="Игра успешно добавлена",
@@ -147,12 +147,23 @@ async def get_tracking_games(
 @router.message(AddGameTrack.added_game_track)
 async def add_tracking_games(
     message: Message, session: AsyncSession, storage: RedisStorage
-):
+) -> None:
     try:
         game = get_game_name(int(message.text))
+        game_cost = get_game_cost(int(message.text))
+        if game_cost == 0:
+            raise ZeroDivisionError
     except KeyError:
         logging.warning(msg=f"Error when adding game: {message.text}")
-        await message.answer(text="Некорректный Id игры, попробуйте еще раз")
+        await message.answer(
+            text="Некорректный id игры(возможно, игра недоступна в Вашем регионе),"
+            " попробуйте еще раз"
+        )
+    except ZeroDivisionError:
+        logging.warning(msg=f"Error when adding game with zero cost: {message.text}")
+        await message.answer(
+            text="Добавление игры с нулевой стоимостью невозможно (цена уже не понизится)"
+        )
 
     else:
         check_game = await check_game_exist_in_redis_or_db(
@@ -179,7 +190,7 @@ async def get_tracking_item(
     session: AsyncSession,
     state: FSMContext,
     storage: RedisStorage,
-):
+) -> None:
     if callback_data.action == "tracking_item":
         item, name = await get_tracking_item_from_redis_or_db(
             telegram_id=callback.from_user.id,
@@ -207,7 +218,7 @@ async def get_tracking_item(
         await delete_tracking_item(item_id=callback_data.item_id, session=session)
         await callback.message.delete()
         await update_redis(
-            user_telegram_id=callback.from_user.id, session=session, storage=storage
+            telegram_id=callback.from_user.id, session=session, storage=storage
         )
         await callback.message.answer(text="Предмет успешно удален")
         await callback.answer()
@@ -226,7 +237,7 @@ async def get_tracking_item(
         )
         await state.clear()
         await update_redis(
-            user_telegram_id=callback.from_user.id, session=session, storage=storage
+            telegram_id=callback.from_user.id, session=session, storage=storage
         )
         await callback.message.answer(
             text="Предмет успешно добавлен",
@@ -243,7 +254,7 @@ async def get_tracking_item(
 @router.message(AddItemTrack.added_item_track)
 async def add_tracking_item(
     message: Message, session: AsyncSession, storage: RedisStorage
-):
+) -> None:
     try:
         item = get_item_market_hash_name(int(message.text))
     except KeyError:

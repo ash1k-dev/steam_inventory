@@ -1,9 +1,12 @@
+from typing import Any, Callable
+
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import DEPRECIATION_FACTOR, INCREASE_FACTOR
 from core.db.methods.create import (
     create_all_items,
-    create_all_steam_inventorys,
+    create_all_steam_inventories,
     create_item,
     create_item_track,
     create_steam,
@@ -14,7 +17,7 @@ from core.db.methods.request import (
     get_all_items_from_db,
     get_all_tracking_items_from_db,
     get_amount_and_items_info_from_db,
-    get_inventorys_id_from_db,
+    get_inventories_id_from_db,
     get_item_from_db,
     get_items_changes,
     get_items_classid_list_from_db,
@@ -31,7 +34,7 @@ from core.tests.test_db.test_items.items_test_data import (
 )
 
 
-async def update_current_item_cost(item_id, item_type, session):
+async def update_current_item_cost(item_id: int, item_type: str, session: AsyncSession):
     factor = {"item": INCREASE_FACTOR, "tracking_item": DEPRECIATION_FACTOR}
     item_from_db = await get_item_from_db(item_id=item_id, session=session)
     item_from_db.cost = item_from_db.cost * factor.get(item_type)
@@ -53,19 +56,19 @@ async def update_current_item_cost(item_id, item_type, session):
 )
 @pytest.mark.asyncio
 async def test_items_crud(
-    test_data_user,
-    test_data_all_games,
-    test_data_json,
-    test_data_item_add,
-    test_data_amount_and_items,
-    test_data_classid,
-    test_result_items_info,
-    test_result_all_items_len,
-    test_result_item_change,
-    get_item_cost_from_steam_mock,
-    get_item_sleep_mock,
-    session,
-):
+    test_data_user: dict,
+    test_data_all_games: dict,
+    test_data_json: dict,
+    test_data_item_add: dict,
+    test_data_amount_and_items: dict,
+    test_data_classid: list,
+    test_result_items_info: dict,
+    test_result_all_items_len: dict,
+    test_result_item_change: list,
+    get_item_cost_from_steam_mock: Callable[[Any], float],
+    get_item_sleep_mock: Callable[[Any], None],
+    session: AsyncSession,
+) -> None:
     get_item_sleep_mock.return_value = None
     await create_user(
         name=test_data_user["name"],
@@ -81,11 +84,11 @@ async def test_items_crud(
     steam = await get_steamid_from_db(
         steam_id=test_data_user["steam_id"], session=session
     )
-    await create_all_steam_inventorys(
+    await create_all_steam_inventories(
         all_games_info=test_data_all_games, steam_id=steam.id, session=session
     )
     for game_id in test_data_all_games:
-        inventory_id = await get_inventorys_id_from_db(
+        inventory_id = await get_inventories_id_from_db(
             session=session, steam_id=steam.id, games_id=game_id
         )
         all_items_info = get_all_items_info(test_data_json)
@@ -131,7 +134,7 @@ async def test_items_crud(
         )
 
     items_changes = await get_items_changes(
-        session, user_telegram_id=test_data_user["telegram_id"]
+        session, telegram_id=test_data_user["telegram_id"]
     )
     assert items_changes == test_result_item_change
 
@@ -145,14 +148,14 @@ async def test_items_crud(
 )
 @pytest.mark.asyncio
 async def test_tracking_items_crud(
-    test_data_user,
-    test_data_all_tracking_items,
-    test_result_tracking_items_change,
-    test_result_all_tracking_items_len,
-    get_item_cost_from_create_mock,
-    get_item_name_mock,
-    session,
-):
+    test_data_user: dict,
+    test_data_all_tracking_items: dict,
+    test_result_tracking_items_change: list,
+    test_result_all_tracking_items_len: int,
+    get_item_cost_from_create_mock: Callable[[Any], float],
+    get_item_name_mock: Callable[[Any], str],
+    session: AsyncSession,
+) -> None:
     await create_user(
         name=test_data_user["name"],
         telegram_id=test_data_user["telegram_id"],
@@ -182,7 +185,7 @@ async def test_tracking_items_crud(
         )
 
     tracking_items_changes = await get_tracking_items_changes(
-        session=session, user_telegram_id=test_data_user["telegram_id"]
+        session=session, telegram_id=test_data_user["telegram_id"]
     )
     assert tracking_items_changes == test_result_tracking_items_change
 

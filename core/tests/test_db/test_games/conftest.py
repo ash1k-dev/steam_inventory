@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any, Callable
 
 import pytest
 import pytest_asyncio
@@ -23,7 +24,7 @@ def event_loop(request) -> asyncio.AbstractEventLoop:
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def db():
+async def db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
     yield
@@ -32,28 +33,28 @@ async def db():
 
 
 @pytest_asyncio.fixture()
-async def session():
+async def session() -> AsyncSession:
     async with async_session() as session:
         yield session
 
 
-def game_cost_mock(game_id):
+def game_cost_mock(game_id) -> float:
     game_cost_dict = TEST_DATA_TRACKING_GAMES_COST_BEFORE_DECREASE
     return game_cost_dict.get(game_id)
 
 
 @pytest.fixture
-def get_game_cost_mock(monkeypatch):
+def get_game_cost_mock(monkeypatch) -> Callable[[Any], float]:
     monkeypatch.setattr("core.db.methods.create.get_game_cost", game_cost_mock)
     return game_cost_mock
 
 
-def game_name_mock(game_id):
+def game_name_mock(game_id: int) -> str:
     game_cost_dict = TEST_DATA_TRACKING_GAMES_NAME
     return game_cost_dict.get(game_id)
 
 
 @pytest.fixture
-def get_game_name_mock(monkeypatch):
+def get_game_name_mock(monkeypatch) -> Callable[[Any], str]:
     monkeypatch.setattr("core.db.methods.create.get_game_name", game_name_mock)
     return game_name_mock

@@ -22,7 +22,7 @@ from core.bot.utils import admin_notification
 from core.bot.utils.apsheduler import check_update
 
 
-async def start():
+async def start() -> None:
     """"""
     logging.basicConfig(
         level=logging.getLevelName(LOG_LEVEL),

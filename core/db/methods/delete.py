@@ -7,7 +7,7 @@ from core.db.methods.request import (
 )
 
 
-async def delete_steam_id(steam_id: str, session: AsyncSession) -> None:
+async def delete_steam_id(steam_id: int, session: AsyncSession) -> None:
     steam_id = await get_steamid_from_db(steam_id=int(steam_id), session=session)
     await session.delete(steam_id)
     await session.commit()

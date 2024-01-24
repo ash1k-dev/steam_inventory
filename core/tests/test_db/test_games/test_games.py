@@ -1,4 +1,7 @@
+from typing import Any, Callable
+
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import DEPRECIATION_FACTOR
 from core.db.methods.create import (
@@ -26,7 +29,7 @@ from core.tests.test_db.test_games.games_test_data import (
 )
 
 
-async def update_current_game_cost(game_id, session):
+async def update_current_game_cost(game_id: int, session: AsyncSession) -> None:
     game_from_db = await get_game_from_db(game_id=game_id, session=session)
     game_from_db.cost = game_from_db.cost * DEPRECIATION_FACTOR
     session.add(game_from_db)
@@ -44,14 +47,14 @@ async def update_current_game_cost(game_id, session):
 )
 @pytest.mark.asyncio
 async def test_game_crud(
-    test_data_user,
-    test_data_all_games,
-    test_result_games,
-    test_result_games_info,
-    test_result_games_count,
-    test_data_games_add,
-    session,
-):
+    test_data_user: dict,
+    test_data_all_games: dict,
+    test_result_games: list,
+    test_result_games_info: list,
+    test_result_games_count: int,
+    test_data_games_add: dict,
+    session: AsyncSession,
+) -> None:
     await create_user(
         name=test_data_user["name"],
         telegram_id=test_data_user["telegram_id"],
@@ -77,7 +80,7 @@ async def test_game_crud(
         steam_id=test_data_user["steam_id"], session=session
     )
     assert games_info == test_result_games_info
-    all_games = await get_all_games_from_db(session)
+    all_games = await get_all_games_from_db(session=session)
     assert len(all_games) == test_result_games_count
     for games_id, games_data in test_data_games_add.items():
         await create_game(
@@ -102,14 +105,14 @@ async def test_game_crud(
 )
 @pytest.mark.asyncio
 async def test_game_track_crud(
-    test_data_user,
-    test_data_all_games,
-    test_result_all_tracking_games_long,
-    test_result_tracking_games_changes,
-    get_game_name_mock,
-    get_game_cost_mock,
-    session,
-):
+    test_data_user: dict,
+    test_data_all_games: dict,
+    test_result_all_tracking_games_long: int,
+    test_result_tracking_games_changes: list,
+    get_game_name_mock: Callable[[Any], str],
+    get_game_cost_mock: Callable[[Any], float],
+    session: AsyncSession,
+) -> None:
     await create_user(
         name=test_data_user["name"],
         telegram_id=test_data_user["telegram_id"],

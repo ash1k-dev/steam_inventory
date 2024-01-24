@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from core.steam.steam import (
@@ -19,8 +21,10 @@ from core.tests.test_steam.test_items.items_test_data import (
     LIST_STEAM_INVENTORY,
 )
 def test_get_steam_inventory(
-    test_data_inventory, test_result_inventory, get_items_requests_mock
-):
+    test_data_inventory: dict,
+    test_result_inventory: dict,
+    get_items_requests_mock: mock.Mock,
+) -> None:
     get_items_requests_mock.return_value.json.return_value = test_data_inventory
     result = get_steam_inventory(steam_id=1, game_id=730)
     assert result == test_result_inventory
@@ -31,11 +35,11 @@ def test_get_steam_inventory(
     LIST_ITEM_COST,
 )
 def test_get_item_cost(
-    test_data_item_cost,
-    test_result_item_cost,
-    test_data_item_name,
-    get_items_requests_mock,
-):
+    test_data_item_cost: dict,
+    test_result_item_cost: float,
+    test_data_item_name: str,
+    get_items_requests_mock: mock.Mock,
+) -> None:
     get_items_requests_mock.return_value.json.return_value = test_data_item_cost
     result = get_item_cost(name=test_data_item_name, game_id=730, currency=5)
     assert result == test_result_item_cost
@@ -46,11 +50,11 @@ def test_get_item_cost(
     LIST_ITEM_MARKET_HASH_NAME,
 )
 def test_get_item_market_hash_name(
-    test_data_item_name,
-    test_result_item_name,
-    test_data_item_id,
-    get_items_requests_mock,
-):
+    test_data_item_name: dict,
+    test_result_item_name: str,
+    test_data_item_id: int,
+    get_items_requests_mock: mock.Mock,
+) -> None:
     get_items_requests_mock.return_value.json.return_value = test_data_item_name
     result = get_item_market_hash_name(item_id=test_data_item_id, app_id=730)
     assert result == test_result_item_name
@@ -60,8 +64,11 @@ def test_get_item_market_hash_name(
     "test_data_all_items, test_result_all_items", LIST_INITIAL_ITEMS
 )
 def test_get_all_items_info(
-    test_data_all_items, test_result_all_items, get_item_cost_mock, get_item_sleep_mock
-):
+    test_data_all_items: dict,
+    test_result_all_items: dict,
+    get_item_cost_mock: mock.Mock,
+    get_item_sleep_mock: mock.Mock,
+) -> None:
     get_item_sleep_mock.return_value = None
     result = get_all_items_info(test_data_all_items)
     assert result == test_result_all_items

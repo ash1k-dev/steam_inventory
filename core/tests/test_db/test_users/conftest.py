@@ -19,7 +19,7 @@ def event_loop(request) -> asyncio.AbstractEventLoop:
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def db():
+async def db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
     yield
@@ -28,6 +28,6 @@ async def db():
 
 
 @pytest_asyncio.fixture()
-async def session():
+async def session() -> AsyncSession:
     async with async_session() as session:
         yield session

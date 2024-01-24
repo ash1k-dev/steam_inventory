@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any, Callable
 from unittest import mock
 
 import pytest
@@ -7,10 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from config import DB_URL_TEST
 from core.db.models import models
-from core.tests.test_db.test_games.games_test_data import (
-    TEST_DATA_TRACKING_GAMES_COST_BEFORE_DECREASE,
-    TEST_DATA_TRACKING_GAMES_NAME,
-)
 from core.tests.test_db.test_items.items_test_data import (
     TEST_DATA_ITEM_COST_DICT,
     TEST_DATA_ITEM_NAME_DICT,
@@ -28,7 +25,7 @@ def event_loop(request) -> asyncio.AbstractEventLoop:
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def db():
+async def db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
     yield
@@ -37,35 +34,35 @@ async def db():
 
 
 @pytest_asyncio.fixture()
-async def session():
+async def session() -> AsyncSession:
     async with async_session() as session:
         yield session
 
 
-def item_cost_mock(name):
+def item_cost_mock(name) -> float:
     item_cost_dict = TEST_DATA_ITEM_COST_DICT
     return item_cost_dict.get(name)
 
 
 @pytest.fixture
-def get_item_cost_from_create_mock(monkeypatch):
+def get_item_cost_from_create_mock(monkeypatch) -> Callable[[Any], float]:
     monkeypatch.setattr("core.db.methods.create.get_item_cost", item_cost_mock)
     return item_cost_mock
 
 
 @pytest.fixture
-def get_item_cost_from_steam_mock(monkeypatch):
+def get_item_cost_from_steam_mock(monkeypatch) -> Callable[[Any], float]:
     monkeypatch.setattr("core.steam.steam.get_item_cost", item_cost_mock)
     return item_cost_mock
 
 
-def item_name_mock(item_id):
+def item_name_mock(item_id) -> str:
     item_cost_dict = TEST_DATA_ITEM_NAME_DICT
     return item_cost_dict.get(item_id)
 
 
 @pytest.fixture
-def get_item_name_mock(monkeypatch):
+def get_item_name_mock(monkeypatch) -> Callable[[Any], str]:
     monkeypatch.setattr(
         "core.db.methods.create.get_item_market_hash_name", item_name_mock
     )
@@ -73,7 +70,7 @@ def get_item_name_mock(monkeypatch):
 
 
 @pytest.fixture
-def get_item_sleep_mock(monkeypatch):
+def get_item_sleep_mock(monkeypatch) -> Callable[[Any], float]:
     sleep_mock = mock.Mock()
     monkeypatch.setattr("core.steam.steam.sleep", sleep_mock)
     return sleep_mock

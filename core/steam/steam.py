@@ -13,7 +13,7 @@ from config import (
 )
 
 
-def get_game_cost(game_id):
+def get_game_cost(game_id: int) -> float:
     try:
         url = "http://store.steampowered.com/api/appdetails"
         request = requests.get(url, params={"appids": game_id, "cc": "ru"})
@@ -33,7 +33,7 @@ def get_game_cost(game_id):
     return game_cost
 
 
-def get_game_name(game_id):
+def get_game_name(game_id: int) -> str:
     url = "http://store.steampowered.com/api/appdetails"
     request = requests.get(url, params={"appids": game_id, "cc": "ru"})
     game_name = request.json()[str(game_id)]["data"]["name"]
@@ -51,7 +51,7 @@ def get_steam_id(steam_id: str) -> int:
     return int(user_id)
 
 
-def get_steam_name(steam_id):
+def get_steam_name(steam_id: int) -> str:
     url = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/"
     request = requests.get(
         url,
@@ -85,7 +85,7 @@ def get_item_cost(name: str, game_id: int = 730, currency: int = CURRENCY) -> fl
     return cost
 
 
-def get_item_market_hash_name(item_id, app_id=730):
+def get_item_market_hash_name(item_id: int, app_id: int = 730) -> str:
     url = "https://api.steampowered.com/ISteamEconomy/GetAssetClassInfo/v1/"
     result = requests.get(
         url,
@@ -95,7 +95,7 @@ def get_item_market_hash_name(item_id, app_id=730):
     return market_hash_name
 
 
-def get_all_games_info(steam_id: int):
+def get_all_games_info(steam_id: int) -> dict:
     url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/"
     game_ids = requests.get(
         url,

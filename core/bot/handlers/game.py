@@ -26,7 +26,7 @@ async def get_games(
     callback_data: GamesCallbackFactory,
     session: AsyncSession,
     storage: RedisStorage,
-):
+) -> None:
     if callback_data.action == "info" or callback_data.action == "back":
         (
             number_of_games,
@@ -82,7 +82,7 @@ async def get_games(
     await callback.answer()
 
 
-async def get_games_text(games) -> tuple[list, list]:
+async def get_games_text(games: list) -> tuple[list, list]:
     games_list = []
     grouped_games_list = []
     for game_id, game_name, first_game_cost, time_in_game, game_cost in games:
