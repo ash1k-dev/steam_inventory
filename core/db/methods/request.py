@@ -43,7 +43,9 @@ async def get_steamid_from_db(steam_id: int, session: AsyncSession) -> Steam:
     return result.scalars().one_or_none()
 
 
-async def get_all_steam_ids_from_db(telegram_id: int, session: AsyncSession):
+async def get_all_steam_ids_from_db(
+    telegram_id: int, session: AsyncSession
+) -> Sequence[Row]:
     statement = select(Steam.steam_id, Steam.name).where(Steam.user_id == telegram_id)
     result = await session.execute(statement)
     return result.all()
@@ -107,7 +109,7 @@ async def get_inventories_id_from_db(
 
 async def get_all_inventory_ids_from_db(
     steam_id, session: AsyncSession
-) -> Sequence[Row]:
+) -> Sequence[Inventory]:
     statement = select(Inventory).filter(Inventory.steam_id == steam_id)
     result = await session.execute(statement)
     return result.scalars().all()
@@ -162,7 +164,7 @@ async def get_amount_and_items_info_from_db(
 
 async def get_items_classid_list_from_db(
     session: AsyncSession,
-):
+) -> Sequence[Row]:
     statement = select(Item.classid)
     result = await session.execute(statement)
     return result.scalars().all()
@@ -170,7 +172,7 @@ async def get_items_classid_list_from_db(
 
 async def get_games_list_from_db(
     session: AsyncSession,
-):
+) -> Sequence[Row]:
     statement = select(Game.game_id)
     result = await session.execute(statement)
     return result.scalars().all()

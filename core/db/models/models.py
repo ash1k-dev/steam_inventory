@@ -1,5 +1,5 @@
 from sqlalchemy import BigInteger, Column, ForeignKey, Integer, String
-from sqlalchemy.orm import DeclarativeBase, declared_attr, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, relationship
 
 
 class Base(DeclarativeBase):
@@ -13,44 +13,56 @@ class Base(DeclarativeBase):
 
 
 class User(Base):
-    name = Column(String, nullable=True)
-    telegram_id = Column(Integer, nullable=False, unique=True)
+    name: Mapped[str] = Column(String, nullable=True)
+    telegram_id: Mapped[int] = Column(Integer, nullable=False, unique=True)
 
-    steams = relationship("Steam", back_populates="user")
-    tracking_items = relationship("ItemTrack", back_populates="user")
-    tracking_games = relationship("GameTrack", back_populates="user")
+    steams: Mapped["Steam"] = relationship("Steam", back_populates="user")
+    tracking_items: Mapped["ItemTrack"] = relationship(
+        "ItemTrack", back_populates="user"
+    )
+    tracking_games: Mapped["GameTrack"] = relationship(
+        "GameTrack", back_populates="user"
+    )
 
 
 # Steam
 class Steam(Base):
-    steam_id = Column(BigInteger, nullable=False)
-    name = Column(String, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.telegram_id"))
+    steam_id: Mapped[int] = Column(BigInteger, nullable=False)
+    name: Mapped[str] = Column(String, nullable=False)
+    user_id: Mapped[int] = Column(Integer, ForeignKey("users.telegram_id"))
 
-    user = relationship("User", back_populates="steams")
-    games = relationship("GameInAccount", back_populates="steam", passive_deletes=True)
-    inventorys = relationship("Inventory", back_populates="steam", passive_deletes=True)
+    user: Mapped["User"] = relationship("User", back_populates="steams")
+    games: Mapped["GameInAccount"] = relationship(
+        "GameInAccount", back_populates="steam", passive_deletes=True
+    )
+    inventorys: Mapped["Inventory"] = relationship(
+        "Inventory", back_populates="steam", passive_deletes=True
+    )
 
 
 class Game(Base):
-    name = Column(String, nullable=False)
-    game_id = Column(Integer, nullable=False, unique=True)
-    cost = Column(Integer, nullable=False)
+    name: Mapped[str] = Column(String, nullable=False)
+    game_id: Mapped[int] = Column(Integer, nullable=False, unique=True)
+    cost: Mapped[int] = Column(Integer, nullable=False)
 
-    games_in = relationship(
+    games_in: Mapped["GameInAccount"] = relationship(
         "GameInAccount", back_populates="game", passive_deletes=True
     )
 
 
 class GameInAccount(Base):
-    game_name = Column(String, nullable=False)
-    first_cost = Column(Integer, nullable=False)
-    time_in_game = Column(Integer, nullable=False)
-    steam_id = Column(BigInteger, ForeignKey("steams.id", ondelete="CASCADE"))
-    game_id = Column(Integer, ForeignKey("games.game_id", ondelete="CASCADE"))
+    game_name: Mapped[str] = Column(String, nullable=False)
+    first_cost: Mapped[int] = Column(Integer, nullable=False)
+    time_in_game: Mapped[int] = Column(Integer, nullable=False)
+    steam_id: Mapped[int] = Column(
+        BigInteger, ForeignKey("steams.id", ondelete="CASCADE")
+    )
+    game_id: Mapped[int] = Column(
+        Integer, ForeignKey("games.game_id", ondelete="CASCADE")
+    )
 
-    steam = relationship("Steam", back_populates="games")
-    game = relationship(
+    steam: Mapped["Steam"] = relationship("Steam", back_populates="games")
+    game: Mapped["Game"] = relationship(
         "Game",
         back_populates="games_in",
         uselist=False,
@@ -58,23 +70,31 @@ class GameInAccount(Base):
 
 
 class Inventory(Base):
-    games_id = Column(Integer, nullable=False)
-    steam_id = Column(BigInteger, ForeignKey("steams.id", ondelete="CASCADE"))
+    games_id: Mapped[int] = Column(Integer, nullable=False)
+    steam_id: Mapped[int] = Column(
+        BigInteger, ForeignKey("steams.id", ondelete="CASCADE")
+    )
 
-    steam = relationship("Steam", back_populates="inventorys")
-    items_in = relationship(
+    steam: Mapped["Steam"] = relationship("Steam", back_populates="inventorys")
+    items_in: Mapped["ItemInInventory"] = relationship(
         "ItemInInventory", back_populates="inventorys", passive_deletes=True
     )
 
 
 class ItemInInventory(Base):
-    amount = Column(Integer, nullable=False)
-    first_cost = Column(Integer, nullable=False)
-    inventory_id = Column(Integer, ForeignKey("inventorys.id", ondelete="CASCADE"))
-    item_id = Column(BigInteger, ForeignKey("items.classid", ondelete="CASCADE"))
+    amount: Mapped[int] = Column(Integer, nullable=False)
+    first_cost: Mapped[int] = Column(Integer, nullable=False)
+    inventory_id: Mapped[int] = Column(
+        Integer, ForeignKey("inventorys.id", ondelete="CASCADE")
+    )
+    item_id: Mapped[int] = Column(
+        BigInteger, ForeignKey("items.classid", ondelete="CASCADE")
+    )
 
-    inventorys = relationship("Inventory", back_populates="items_in")
-    item = relationship(
+    inventorys: Mapped["Inventory"] = relationship(
+        "Inventory", back_populates="items_in"
+    )
+    item: Mapped["Item"] = relationship(
         "Item",
         back_populates="items_in",
         uselist=False,
@@ -82,29 +102,37 @@ class ItemInInventory(Base):
 
 
 class Item(Base):
-    name = Column(String, nullable=False)
-    app_id = Column(Integer, default=730, nullable=False)
-    classid = Column(BigInteger, nullable=False, unique=True)
+    name: Mapped[str] = Column(String, nullable=False)
+    app_id: Mapped[int] = Column(Integer, default=730, nullable=False)
+    classid: Mapped[int] = Column(BigInteger, nullable=False, unique=True)
     cost = Column(Integer, nullable=False)
 
-    items_in = relationship(
+    items_in: Mapped["ItemInInventory"] = relationship(
         "ItemInInventory", back_populates="item", passive_deletes=True
     )
 
 
 class ItemTrack(Base):
-    name = Column(String, nullable=False)
-    first_cost = Column(Integer, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.telegram_id", ondelete="CASCADE"))
-    item_id = Column(BigInteger, ForeignKey("items.classid", ondelete="CASCADE"))
+    name: Mapped[str] = Column(String, nullable=False)
+    first_cost: Mapped[int] = Column(Integer, nullable=False)
+    user_id: Mapped[int] = Column(
+        Integer, ForeignKey("users.telegram_id", ondelete="CASCADE")
+    )
+    item_id: Mapped[int] = Column(
+        BigInteger, ForeignKey("items.classid", ondelete="CASCADE")
+    )
 
-    user = relationship("User", back_populates="tracking_items")
+    user: Mapped["User"] = relationship("User", back_populates="tracking_items")
 
 
 class GameTrack(Base):
-    name = Column(String, nullable=False)
-    first_cost = Column(Integer, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.telegram_id", ondelete="CASCADE"))
-    game_id = Column(Integer, ForeignKey("games.game_id", ondelete="CASCADE"))
+    name: Mapped[str] = Column(String, nullable=False)
+    first_cost: Mapped[int] = Column(Integer, nullable=False)
+    user_id: Mapped[int] = Column(
+        Integer, ForeignKey("users.telegram_id", ondelete="CASCADE")
+    )
+    game_id: Mapped[int] = Column(
+        Integer, ForeignKey("games.game_id", ondelete="CASCADE")
+    )
 
-    user = relationship("User", back_populates="tracking_games")
+    user: Mapped["User"] = relationship("User", back_populates="tracking_games")
