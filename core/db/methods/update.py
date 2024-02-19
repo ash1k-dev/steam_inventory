@@ -20,6 +20,7 @@ from core.steam.steam import get_game_cost, get_item_cost
 
 
 async def update_all_items(session: AsyncSession):
+    """Обновление цен всех предметов"""
     new_items_list = []
     items_list = await get_all_items_from_db(session=session)
     for item in items_list:
@@ -34,6 +35,7 @@ async def update_all_items(session: AsyncSession):
 
 
 async def update_all_games(session: AsyncSession):
+    """Обновление цен всех игр"""
     new_items_list = []
     all_games = await get_all_games_from_db(session=session)
     for game in all_games:
@@ -46,6 +48,7 @@ async def update_all_games(session: AsyncSession):
 
 
 async def update_all_items_and_games(session) -> None:
+    """Обновление цен всех игр и предметов"""
     await update_all_items(session=session)
     await update_all_games(session=session)
 
@@ -53,6 +56,7 @@ async def update_all_items_and_games(session) -> None:
 async def update_tracking_redis(
     session: AsyncSession, tracking_type: str, telegram_id: int
 ) -> dict:
+    """Обновление отслеживемых предметов и игр в Redis"""
     tracking_type_dict = {
         "tracking_items": get_all_tracking_items_from_db,
         "tracking_games": get_all_tracking_games_from_db,
@@ -79,6 +83,7 @@ async def update_tracking_redis(
 
 
 async def update_items_redis(session: AsyncSession, steam_id: int) -> dict:
+    """Обновление отслеживемых предметов в Redis"""
     all_items = await get_amount_and_items_info_from_db(
         session=session, steam_id=steam_id, limit=1000
     )
@@ -100,6 +105,7 @@ async def update_items_redis(session: AsyncSession, steam_id: int) -> dict:
 
 
 async def update_games_redis(session: AsyncSession, steam_id: int) -> dict:
+    """Обновление отслеживемых игр в Redis"""
     all_items = await get_games_from_db(session=session, steam_id=steam_id)
     tracking_items_redis = {}
     for item in all_items:
@@ -121,6 +127,7 @@ async def update_games_redis(session: AsyncSession, steam_id: int) -> dict:
 
 
 async def update_items_info_redis(session: AsyncSession, steam_id: int) -> dict:
+    """Обновление информации о предметах в Redis"""
     items_data = await get_items_info_from_db(session=session, steam_id=steam_id)
     total_cost, first_total_cost, total_amount, max_cost, min_cost = items_data[0]
     items_info = {
@@ -134,6 +141,7 @@ async def update_items_info_redis(session: AsyncSession, steam_id: int) -> dict:
 
 
 async def update_games_info_redis(session: AsyncSession, steam_id: int) -> dict:
+    """Обновление информации о играх в Redis"""
     games_data = await get_games_info_from_db(session=session, steam_id=steam_id)
     number_of_games, total_cost, time_in_games = games_data[0]
     games_info = {
@@ -147,6 +155,7 @@ async def update_games_info_redis(session: AsyncSession, steam_id: int) -> dict:
 async def update_redis(
     telegram_id, session: async_sessionmaker | AsyncSession, storage: RedisStorage
 ) -> None:
+    """Обновление отслеживаемых предметов и игр в Redis"""
     tracking_items = await update_tracking_redis(
         session=session,
         telegram_id=telegram_id,

@@ -15,6 +15,7 @@ from core.steam.steam import get_steam_name
 async def check_update(
     bot: Bot, sessionmaker: async_sessionmaker, storage: RedisStorage
 ) -> None:
+    """Проверка изменений и отправка уведомлений"""
     async with sessionmaker() as session:
         await update_all_items_and_games(session)
         all_users = await get_all_user_from_db(session=session)
@@ -27,6 +28,7 @@ async def check_update(
 
 
 async def send_changes(bot: Bot, telegram_id: int, changes: tuple) -> None:
+    """Формирование сообщений о изменениях"""
     tracking_items, tracking_games, items = changes
     if tracking_items:
         tracking_items_info = await check_tracking_items(tracking_items=tracking_items)
@@ -57,6 +59,7 @@ async def send_changes(bot: Bot, telegram_id: int, changes: tuple) -> None:
 
 
 async def check_items(item_data: list) -> str:
+    """Формировние сообщения о изменениях в предметах"""
     items_info = ""
     for name, item_cost, first_item_cost in item_data:
         difference_for_item = item_cost - first_item_cost
@@ -72,6 +75,7 @@ async def check_items(item_data: list) -> str:
 
 
 async def check_tracking_games(tracking_games: list) -> str:
+    """Формирование сообщения о изменениях в отслеживаемых играх"""
     tracking_games_info = ""
     for name, game_id, first_game_cost, game_cost in tracking_games:
         difference_for_tracking_games = game_cost - first_game_cost
@@ -89,6 +93,7 @@ async def check_tracking_games(tracking_games: list) -> str:
 
 
 async def check_tracking_items(tracking_items: list) -> str:
+    """Формирование сообщения о изменениях в отслеживаемых предметах"""
     tracking_items_info = ""
     for name, item_id, first_item_cost, item_cost in tracking_items:
         difference_for_tracking_items = item_cost - first_item_cost

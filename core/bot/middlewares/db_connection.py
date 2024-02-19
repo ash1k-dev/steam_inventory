@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 
 class DbConnection(BaseMiddleware):
-    """Connecting to the database in handlers"""
+    """Создание сессии для работы с базой данных"""
 
     def __init__(self, sessionmaker: async_sessionmaker):
         super().__init__()

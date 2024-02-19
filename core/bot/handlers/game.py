@@ -27,6 +27,7 @@ async def get_games(
     session: AsyncSession,
     storage: RedisStorage,
 ) -> None:
+    """Обработка событий связанных с играми"""
     if callback_data.action == "info" or callback_data.action == "back":
         (
             number_of_games,
@@ -83,6 +84,7 @@ async def get_games(
 
 
 async def get_games_text(games: list) -> tuple[list, list]:
+    """Получение списка игр и группиррование по страницам"""
     games_list = []
     grouped_games_list = []
     for game_id, game_name, first_game_cost, time_in_game, game_cost in games:

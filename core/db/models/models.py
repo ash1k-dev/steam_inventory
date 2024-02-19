@@ -3,6 +3,8 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, relationship
 
 
 class Base(DeclarativeBase):
+    """Базовая модель"""
+
     __abstract__ = True
 
     @declared_attr.directive
@@ -13,6 +15,8 @@ class Base(DeclarativeBase):
 
 
 class User(Base):
+    """Модель пользователя"""
+
     name: Mapped[str] = Column(String, nullable=True)
     telegram_id: Mapped[int] = Column(Integer, nullable=False, unique=True)
 
@@ -27,6 +31,8 @@ class User(Base):
 
 # Steam
 class Steam(Base):
+    """Модель Steam"""
+
     steam_id: Mapped[int] = Column(BigInteger, nullable=False)
     name: Mapped[str] = Column(String, nullable=False)
     user_id: Mapped[int] = Column(Integer, ForeignKey("users.telegram_id"))
@@ -41,6 +47,8 @@ class Steam(Base):
 
 
 class Game(Base):
+    """Модель игры"""
+
     name: Mapped[str] = Column(String, nullable=False)
     game_id: Mapped[int] = Column(Integer, nullable=False, unique=True)
     cost: Mapped[int] = Column(Integer, nullable=False)
@@ -51,6 +59,8 @@ class Game(Base):
 
 
 class GameInAccount(Base):
+    """Модель игры в аккаунте"""
+
     game_name: Mapped[str] = Column(String, nullable=False)
     first_cost: Mapped[int] = Column(Integer, nullable=False)
     time_in_game: Mapped[int] = Column(Integer, nullable=False)
@@ -70,6 +80,8 @@ class GameInAccount(Base):
 
 
 class Inventory(Base):
+    """Модель инвентаря"""
+
     games_id: Mapped[int] = Column(Integer, nullable=False)
     steam_id: Mapped[int] = Column(
         BigInteger, ForeignKey("steams.id", ondelete="CASCADE")
@@ -82,6 +94,8 @@ class Inventory(Base):
 
 
 class ItemInInventory(Base):
+    """Модель предмета в инвентаре"""
+
     amount: Mapped[int] = Column(Integer, nullable=False)
     first_cost: Mapped[int] = Column(Integer, nullable=False)
     inventory_id: Mapped[int] = Column(
@@ -102,6 +116,8 @@ class ItemInInventory(Base):
 
 
 class Item(Base):
+    """Модель предмета"""
+
     name: Mapped[str] = Column(String, nullable=False)
     app_id: Mapped[int] = Column(Integer, default=730, nullable=False)
     classid: Mapped[int] = Column(BigInteger, nullable=False, unique=True)
@@ -113,6 +129,8 @@ class Item(Base):
 
 
 class ItemTrack(Base):
+    """Модель отслеживаемого предмета"""
+
     name: Mapped[str] = Column(String, nullable=False)
     first_cost: Mapped[int] = Column(Integer, nullable=False)
     user_id: Mapped[int] = Column(
@@ -126,6 +144,8 @@ class ItemTrack(Base):
 
 
 class GameTrack(Base):
+    """Модель отслеживаемой игры"""
+
     name: Mapped[str] = Column(String, nullable=False)
     first_cost: Mapped[int] = Column(Integer, nullable=False)
     user_id: Mapped[int] = Column(

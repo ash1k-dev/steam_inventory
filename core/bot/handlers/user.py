@@ -46,6 +46,7 @@ class AddSteam(StatesGroup):
 
 @router.message(F.text.in_({"/start", "Назад"}))
 async def get_start(message: Message, session: AsyncSession) -> None:
+    """Обработка событий связанных с стартом бота(отображение меню и создание пользователя)"""
     telegram_id = message.from_user.id
     result = await get_user_from_db(telegram_id=telegram_id, session=session)
     if result is None:
@@ -64,6 +65,7 @@ async def get_start(message: Message, session: AsyncSession) -> None:
 async def get_steam_ids(
     message: Message, session: AsyncSession, storage: RedisStorage
 ) -> None:
+    """Получение списка свзянных с пользователем Steam id"""
     steam_ids_list = await get_steam_ids_from_redis_or_db(
         session=session, storage=storage, telegram_id=message.from_user.id
     )
@@ -75,6 +77,7 @@ async def get_steam_ids(
 
 @router.message(F.text == "Помощь")
 async def get_help(message: Message) -> None:
+    """Отображение справочной информации"""
     await message.answer(
         TEXT_HELP.substitute(
             admin_link=ADMIN_TELEGRAM_LINK, disable_web_page_preview=True
@@ -84,6 +87,7 @@ async def get_help(message: Message) -> None:
 
 @router.message(F.text == "Отслеживание стоимости")
 async def get_cost(message: Message) -> None:
+    """Переход в меню отслеживания стоимости"""
     await message.answer("Отслеживание стоимости", reply_markup=get_track_menu())
 
 
@@ -95,6 +99,7 @@ async def add_steam_id(
     state: FSMContext,
     storage: RedisStorage,
 ) -> None:
+    """Добавление Steam id в список"""
     try:
         steam_id = get_steam_id(message.text)
         steam_name = get_steam_name(steam_id)
@@ -155,6 +160,7 @@ async def processing_add_steam_id_error(
     steam_id: int,
     storage: RedisStorage,
 ) -> None:
+    """Обработка ошибок при добавлении Steam id"""
     check_earlier_error = await storage.redis.get(name=str(steam_id))
     left_error_storage_time = await storage.redis.ttl(name=str(steam_id))
     check_creating_steamid = await get_steamid_from_db(
@@ -216,6 +222,7 @@ async def get_steam(
     state: FSMContext,
     storage: RedisStorage,
 ) -> None:
+    """Обработка событий связанных с Steam id"""
     if callback_data.action == "info":
         await callback.message.answer(
             text=f"Данные профиля {callback_data.steam_name}:",

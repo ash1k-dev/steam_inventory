@@ -20,6 +20,7 @@ def event_loop(request) -> asyncio.AbstractEventLoop:
 
 @pytest_asyncio.fixture(autouse=True)
 async def db() -> None:
+    """Создание и удаление таблиц в базе данных"""
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
     yield
@@ -29,5 +30,6 @@ async def db() -> None:
 
 @pytest_asyncio.fixture()
 async def session() -> AsyncSession:
+    """Создание сессии для запросов к базе данных"""
     async with async_session() as session:
         yield session

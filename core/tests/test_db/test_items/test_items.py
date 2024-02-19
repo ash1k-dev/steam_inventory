@@ -35,6 +35,7 @@ from core.tests.test_db.test_items.items_test_data import (
 
 
 async def update_current_item_cost(item_id: int, item_type: str, session: AsyncSession):
+    """Обновление текущую стоимость предмета"""
     factor = {"item": INCREASE_FACTOR, "tracking_item": DEPRECIATION_FACTOR}
     item_from_db = await get_item_from_db(item_id=item_id, session=session)
     item_from_db.cost = item_from_db.cost * factor.get(item_type)
@@ -69,6 +70,7 @@ async def test_items_crud(
     get_item_sleep_mock: Callable[[Any], None],
     session: AsyncSession,
 ) -> None:
+    """Тестирование CRUD для предметов"""
     get_item_sleep_mock.return_value = None
     await create_user(
         name=test_data_user["name"],
@@ -156,6 +158,7 @@ async def test_tracking_items_crud(
     get_item_name_mock: Callable[[Any], str],
     session: AsyncSession,
 ) -> None:
+    """Тестирование CRUD для отслеживаемых предметов"""
     await create_user(
         name=test_data_user["name"],
         telegram_id=test_data_user["telegram_id"],

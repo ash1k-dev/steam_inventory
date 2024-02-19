@@ -14,6 +14,7 @@ from config import (
 
 
 def get_game_cost(game_id: int) -> float:
+    """Получение стоимости игры"""
     try:
         url = "http://store.steampowered.com/api/appdetails"
         request = requests.get(url, params={"appids": game_id, "cc": "ru"})
@@ -34,6 +35,7 @@ def get_game_cost(game_id: int) -> float:
 
 
 def get_game_name(game_id: int) -> str:
+    """Получение названия игры"""
     url = "http://store.steampowered.com/api/appdetails"
     request = requests.get(url, params={"appids": game_id, "cc": "ru"})
     game_name = request.json()[str(game_id)]["data"]["name"]
@@ -41,6 +43,7 @@ def get_game_name(game_id: int) -> str:
 
 
 def get_steam_id(steam_id: str) -> int:
+    """Получение Steam id"""
     if steam_id.isdigit():
         return int(steam_id)
     url = "https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/"
@@ -52,6 +55,7 @@ def get_steam_id(steam_id: str) -> int:
 
 
 def get_steam_name(steam_id: int) -> str:
+    """Получение имени пользователя в Steam"""
     url = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/"
     request = requests.get(
         url,
@@ -65,12 +69,14 @@ def get_steam_name(steam_id: int) -> str:
 
 
 def get_steam_inventory(steam_id: int, game_id: int = 730) -> dict:
+    """Получение инвентаря Steam"""
     url = f"https://steamcommunity.com/inventory/{steam_id}/{game_id}/2"
     data = requests.get(url)
     return data.json()
 
 
 def get_item_cost(name: str, game_id: int = 730, currency: int = CURRENCY) -> float:
+    """Получение стоимости предмета"""
     url = "http://steamcommunity.com//market/priceoverview"
     try:
         market_item = requests.get(
@@ -86,6 +92,7 @@ def get_item_cost(name: str, game_id: int = 730, currency: int = CURRENCY) -> fl
 
 
 def get_item_market_hash_name(item_id: int, app_id: int = 730) -> str:
+    """Получение названия предмета"""
     url = "https://api.steampowered.com/ISteamEconomy/GetAssetClassInfo/v1/"
     result = requests.get(
         url,
@@ -96,6 +103,7 @@ def get_item_market_hash_name(item_id: int, app_id: int = 730) -> str:
 
 
 def get_all_games_info(steam_id: int) -> dict:
+    """Получение информации о всех играх пользователя Steam"""
     url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/"
     game_ids = requests.get(
         url,
@@ -120,6 +128,7 @@ def get_all_games_info(steam_id: int) -> dict:
 
 
 def get_all_items_info(items: dict) -> dict:
+    """Получение информации о всех предметах"""
     items_info = {}
     for classid in items["assets"]:
         id = int(classid["classid"])

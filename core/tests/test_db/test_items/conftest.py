@@ -26,6 +26,7 @@ def event_loop(request) -> asyncio.AbstractEventLoop:
 
 @pytest_asyncio.fixture(autouse=True)
 async def db() -> None:
+    """Создание и удаление таблиц в базе данных"""
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
     yield
@@ -35,34 +36,40 @@ async def db() -> None:
 
 @pytest_asyncio.fixture()
 async def session() -> AsyncSession:
+    """Создание сессии для запросов к базе данных"""
     async with async_session() as session:
         yield session
 
 
 def item_cost_mock(name) -> float:
+    """Получение стоимости предмета из словаря"""
     item_cost_dict = TEST_DATA_ITEM_COST_DICT
     return item_cost_dict.get(name)
 
 
 @pytest.fixture
 def get_item_cost_from_create_mock(monkeypatch) -> Callable[[Any], float]:
+    """Замена функции get_item_cost"""
     monkeypatch.setattr("core.db.methods.create.get_item_cost", item_cost_mock)
     return item_cost_mock
 
 
 @pytest.fixture
 def get_item_cost_from_steam_mock(monkeypatch) -> Callable[[Any], float]:
+    """Замена функции get_item_cost"""
     monkeypatch.setattr("core.steam.steam.get_item_cost", item_cost_mock)
     return item_cost_mock
 
 
 def item_name_mock(item_id) -> str:
+    """Получение имени предмета из словаря"""
     item_cost_dict = TEST_DATA_ITEM_NAME_DICT
     return item_cost_dict.get(item_id)
 
 
 @pytest.fixture
 def get_item_name_mock(monkeypatch) -> Callable[[Any], str]:
+    """Замена функции get_item_market_hash_name"""
     monkeypatch.setattr(
         "core.db.methods.create.get_item_market_hash_name", item_name_mock
     )
@@ -71,6 +78,7 @@ def get_item_name_mock(monkeypatch) -> Callable[[Any], str]:
 
 @pytest.fixture
 def get_item_sleep_mock(monkeypatch) -> Callable[[Any], float]:
+    """Замена функции sleep"""
     sleep_mock = mock.Mock()
     monkeypatch.setattr("core.steam.steam.sleep", sleep_mock)
     return sleep_mock

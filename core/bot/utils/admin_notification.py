@@ -8,17 +8,20 @@ router = Router()
 
 @router.startup()
 async def start_bot(bot: Bot) -> None:
+    """Уведомление админа о запуске бота"""
     await bot.send_message(chat_id=ADMIN_ID, text="Бот запущен")
 
 
 @router.shutdown()
 async def stop_bot(bot: Bot) -> None:
+    """Уведомление админа о остановке бота"""
     await bot.send_message(chat_id=ADMIN_ID, text="Бот остановлен")
 
 
 async def send_recording_steam_data_error(
     bot: Bot, user_name: str, user_id: int, steam_id: int, error: str
 ) -> None:
+    """Уведомление админа о возникновении ошибки при записи данных Steam"""
     await bot.send_message(
         chat_id=ADMIN_ID,
         text=TEXT_STEAM_DATA_ERROR.substitute(

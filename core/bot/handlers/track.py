@@ -45,10 +45,14 @@ router = Router()
 
 
 class AddGameTrack(StatesGroup):
+    """State для добавление отслеживаемой игры"""
+
     added_game_track = State()
 
 
 class AddItemTrack(StatesGroup):
+    """State для добавление отслеживаемого предмета"""
+
     added_item_track = State()
 
 
@@ -56,6 +60,7 @@ class AddItemTrack(StatesGroup):
 async def get_tracking_items(
     message: Message, session: AsyncSession, storage: RedisStorage
 ) -> None:
+    """Получение списка отслеживаемых предметов"""
     tracking_items_list = await get_tracking_items_list_from_redis_or_db(
         session=session, telegram_id=message.from_user.id, storage=storage
     )
@@ -69,6 +74,7 @@ async def get_tracking_items(
 async def get_tracking_games(
     message: Message, session: AsyncSession, storage: RedisStorage
 ) -> None:
+    """Получение списка отслеживаемых игр"""
     tracking_games_list = await get_tracking_games_list_from_redis_or_db(
         session=session, telegram_id=message.from_user.id, storage=storage
     )
@@ -86,6 +92,7 @@ async def get_tracking_games(
     state: FSMContext,
     storage: RedisStorage,
 ) -> None:
+    """Обработка событий связанных с отслеживаемыми играми"""
     if callback_data.action == "tracking_game":
         game = await get_tracking_game_from_redis_or_db(
             telegram_id=callback.from_user.id,
@@ -148,6 +155,7 @@ async def get_tracking_games(
 async def add_tracking_games(
     message: Message, session: AsyncSession, storage: RedisStorage
 ) -> None:
+    """Добавление отслеживаемой игры"""
     try:
         game = get_game_name(int(message.text))
         game_cost = get_game_cost(int(message.text))
@@ -191,6 +199,7 @@ async def get_tracking_item(
     state: FSMContext,
     storage: RedisStorage,
 ) -> None:
+    """Обработка событий связанных с отслеживаемыми предметами"""
     if callback_data.action == "tracking_item":
         item, name = await get_tracking_item_from_redis_or_db(
             telegram_id=callback.from_user.id,
@@ -255,6 +264,7 @@ async def get_tracking_item(
 async def add_tracking_item(
     message: Message, session: AsyncSession, storage: RedisStorage
 ) -> None:
+    """Добавление предмета в список отслеживаемых"""
     try:
         item = get_item_market_hash_name(int(message.text))
     except KeyError:

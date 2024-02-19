@@ -33,6 +33,7 @@ async def test_user_crud(
     test_data_user_not_exist: int,
     session: AsyncSession,
 ) -> None:
+    """Тестирование CRUD для пользователей"""
     for user in test_data_user:
         await create_user(
             name=user["name"], telegram_id=user["telegram_id"], session=session
@@ -65,6 +66,7 @@ async def test_steam_id_crud(
     test_data_steam_id_not_exist: int,
     session: AsyncSession,
 ) -> None:
+    """Тестирование CRUD для Steam id"""
     await create_user(
         name=test_data_steam_id[0]["steam_name"],
         telegram_id=test_data_steam_id[0]["telegram_id"],
@@ -115,6 +117,7 @@ async def test_inventory_crud(
     test_data_inventory_not_exist: int,
     session: AsyncSession,
 ):
+    """Тестирование CRUD для инвентарей"""
     await create_user(
         name=test_data_inventory["name"],
         telegram_id=test_data_inventory["telegram_id"],

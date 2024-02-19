@@ -32,6 +32,7 @@ from core.steam.test_data import inventory_json
 
 
 async def create_user(name: str, telegram_id: int, session: AsyncSession) -> None:
+    """Создание пользователя"""
     user = User(name=name, telegram_id=telegram_id)
     session.add(user)
     await session.commit()
@@ -40,6 +41,7 @@ async def create_user(name: str, telegram_id: int, session: AsyncSession) -> Non
 async def create_steam(
     steam_id: int, telegram_id: int, steam_name: str, session: AsyncSession
 ) -> None:
+    """Создание Steam id"""
     steam_id = Steam(steam_id=steam_id, user_id=telegram_id, name=steam_name)
     session.add(steam_id)
     await session.commit()
@@ -48,6 +50,7 @@ async def create_steam(
 async def create_all_steam_inventories(
     all_games_info: dict, steam_id: int, session: AsyncSession
 ) -> None:
+    """Создание всех инвентарей для игр привязанных к Steam id"""
     all_inventory = []
     for game_id in all_games_info:
         steam_inventory = Inventory(
@@ -62,6 +65,7 @@ async def create_all_steam_inventories(
 async def create_all_games(
     all_games_info: dict, steam_id: int, session: AsyncSession
 ) -> None:
+    """Создание всех игр привязанных к Steam id"""
     all_games = []
     games_list = await get_games_list_from_db(session=session)
     for game_id, game_data in all_games_info.items():
@@ -87,6 +91,7 @@ async def create_all_games(
 async def create_all_items(
     all_items_info: dict, inventory_id: int, session: AsyncSession
 ) -> None:
+    """Создание всех предметов привязанных к инвентарям"""
     all_items = []
     items_list = await get_items_classid_list_from_db(session=session)
     for item_id, item_data in all_items_info.items():
@@ -114,6 +119,7 @@ async def create_all_items(
 async def add_initial_data(
     message: Message, session: AsyncSession, steam_id: int, steam_name: str
 ) -> None:
+    """Добавление первоначальных данных в базу"""
     await create_steam(
         telegram_id=message.from_user.id,
         steam_id=steam_id,
@@ -154,6 +160,7 @@ async def add_initial_data(
 async def create_game(
     game_id: int, game_name: str, game_cost: float, session: AsyncSession
 ) -> None:
+    """Создание игры в базе"""
     game = Game(name=game_name, game_id=game_id, cost=game_cost)
     session.add(game)
     await session.commit()
@@ -162,6 +169,7 @@ async def create_game(
 async def create_game_track(
     game_id: int, telegram_id: int, session: AsyncSession
 ) -> None:
+    """Создание отслеживаемой игры в базе"""
     first_game_cost = get_game_cost(game_id=game_id)
     name = get_game_name(game_id=int(game_id))
     check_game = await get_game_from_db(game_id=game_id, session=session)
@@ -179,6 +187,7 @@ async def create_game_track(
 async def create_item(
     name: str, item_id: int, item_cost: float, session: AsyncSession
 ) -> None:
+    """Создание предмета в базе"""
     game = Item(name=name, classid=item_id, cost=item_cost)
     session.add(game)
     await session.commit()
@@ -187,6 +196,7 @@ async def create_item(
 async def create_item_track(
     item_id: int, telegram_id: int, session: AsyncSession
 ) -> None:
+    """Создание отслеживаемого предмета в базе"""
     market_hash_name = get_item_market_hash_name(item_id=item_id)
     first_item_cost = get_item_cost(name=market_hash_name)
     check_item = await get_item_from_db(item_id=item_id, session=session)

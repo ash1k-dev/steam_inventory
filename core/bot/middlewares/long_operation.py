@@ -11,6 +11,8 @@ bot = Bot(token=TOKEN, parse_mode="HTML")
 
 
 class LongOperationMiddleware(BaseMiddleware):
+    """Отображает длительную операцию в чате"""
+
     async def __call__(
         self,
         handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],

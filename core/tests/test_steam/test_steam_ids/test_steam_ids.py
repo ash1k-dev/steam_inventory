@@ -18,6 +18,7 @@ def test_get_steam_id(
     test_result_steam_id: int,
     get_steam_id_requests_mock: mock.Mock,
 ) -> None:
+    """Проверка получения Steam id"""
     get_steam_id_requests_mock.return_value.json.return_value = test_data_steam_id
     result = get_steam_id(steam_id="")
     assert result == test_result_steam_id
@@ -32,6 +33,7 @@ def test_steam_name(
     test_result_steam_name: str,
     get_steam_id_requests_mock: mock.Mock,
 ) -> None:
+    """Проверка получения имени пользователя в Steam"""
     get_steam_id_requests_mock.return_value.json.return_value = test_data_steam_name
     result = get_steam_name(steam_id=1)
     assert result == test_result_steam_name

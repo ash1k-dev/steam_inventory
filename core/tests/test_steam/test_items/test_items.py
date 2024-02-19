@@ -25,6 +25,7 @@ def test_get_steam_inventory(
     test_result_inventory: dict,
     get_items_requests_mock: mock.Mock,
 ) -> None:
+    """Проверка получения инвентаря Steam"""
     get_items_requests_mock.return_value.json.return_value = test_data_inventory
     result = get_steam_inventory(steam_id=1, game_id=730)
     assert result == test_result_inventory
@@ -40,6 +41,7 @@ def test_get_item_cost(
     test_data_item_name: str,
     get_items_requests_mock: mock.Mock,
 ) -> None:
+    """Проверка получения стоимости предмета"""
     get_items_requests_mock.return_value.json.return_value = test_data_item_cost
     result = get_item_cost(name=test_data_item_name, game_id=730, currency=5)
     assert result == test_result_item_cost
@@ -55,6 +57,7 @@ def test_get_item_market_hash_name(
     test_data_item_id: int,
     get_items_requests_mock: mock.Mock,
 ) -> None:
+    """Проверка получения названия предмета"""
     get_items_requests_mock.return_value.json.return_value = test_data_item_name
     result = get_item_market_hash_name(item_id=test_data_item_id, app_id=730)
     assert result == test_result_item_name
@@ -69,6 +72,7 @@ def test_get_all_items_info(
     get_item_cost_mock: mock.Mock,
     get_item_sleep_mock: mock.Mock,
 ) -> None:
+    """Проверка получения информации о предметах"""
     get_item_sleep_mock.return_value = None
     result = get_all_items_info(test_data_all_items)
     assert result == test_result_all_items

@@ -29,6 +29,7 @@ async def get_items(
     session: AsyncSession,
     storage: RedisStorage,
 ) -> None:
+    """Обработка событий связанных с steam предметами"""
     if callback_data.action == "info" or callback_data.action == "back":
         (
             difference_total_cost,
@@ -97,6 +98,7 @@ async def get_items(
 
 
 async def get_items_text(items: list) -> tuple[list, list]:
+    """Получение списка предметов и группирование по страницам"""
     items_list = []
     grouped_items_list = []
     for item_name, item_cost, first_item_cost, amount, difference in items:

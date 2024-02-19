@@ -30,6 +30,7 @@ from core.tests.test_db.test_games.games_test_data import (
 
 
 async def update_current_game_cost(game_id: int, session: AsyncSession) -> None:
+    """Обновление текущей стоимости игры"""
     game_from_db = await get_game_from_db(game_id=game_id, session=session)
     game_from_db.cost = game_from_db.cost * DEPRECIATION_FACTOR
     session.add(game_from_db)
@@ -55,6 +56,7 @@ async def test_game_crud(
     test_data_games_add: dict,
     session: AsyncSession,
 ) -> None:
+    """Тесты CRUD для игр"""
     await create_user(
         name=test_data_user["name"],
         telegram_id=test_data_user["telegram_id"],
@@ -113,6 +115,7 @@ async def test_game_track_crud(
     get_game_cost_mock: Callable[[Any], float],
     session: AsyncSession,
 ) -> None:
+    """Тесты CRUD для отслеживаных игр"""
     await create_user(
         name=test_data_user["name"],
         telegram_id=test_data_user["telegram_id"],

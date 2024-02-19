@@ -11,6 +11,7 @@ from core.bot.keyboards.inline.callback_factory import (
 
 
 def get_steams_menu(steam_id_list: list) -> InlineKeyboardMarkup:
+    """Получение клавиатуры со списком Steam id"""
     keyboard_builder = InlineKeyboardBuilder()
     for steam_id, name in steam_id_list:
         keyboard_builder.button(
@@ -29,6 +30,7 @@ def get_steams_menu(steam_id_list: list) -> InlineKeyboardMarkup:
 
 
 def get_control_menu(steamid_name: str, steamid_id) -> InlineKeyboardMarkup:
+    """Получение клавиатуры для управления Steam id"""
     keyboard_builder = InlineKeyboardBuilder()
     keyboard_builder.button(
         text="Информация",
@@ -51,6 +53,7 @@ def get_control_menu(steamid_name: str, steamid_id) -> InlineKeyboardMarkup:
 
 
 def get_steam_id_menu(steamid_name, steamid_id) -> InlineKeyboardMarkup:
+    """Получение клавиатуры для конкретного Steam id"""
     keyboard_builder = InlineKeyboardBuilder()
     keyboard_builder.button(
         text="Инвентарь",
@@ -81,6 +84,7 @@ def get_steam_id_menu(steamid_name, steamid_id) -> InlineKeyboardMarkup:
 
 
 def get_games_menu(steam_id, steam_name) -> InlineKeyboardMarkup:
+    """Получение клавиатуры для игр"""
     keyboard_builder = InlineKeyboardBuilder()
     keyboard_builder.button(
         text=f"ТОП {TOP_ITEMS_AMOUNT} по проведенному времени",
@@ -126,6 +130,7 @@ def get_games_menu(steam_id, steam_name) -> InlineKeyboardMarkup:
 
 
 def get_games_back_menu(steam_id, steam_name) -> InlineKeyboardMarkup:
+    """Получение клавиатуры для возврата"""
     keyboard_builder = InlineKeyboardBuilder()
     keyboard_builder.button(
         text="Назад",
@@ -140,6 +145,7 @@ def get_games_back_menu(steam_id, steam_name) -> InlineKeyboardMarkup:
 
 
 def get_items_menu(steam_id: int, steam_name: str) -> InlineKeyboardMarkup:
+    """Получение клавиатуры для предметов"""
     keyboard_builder = InlineKeyboardBuilder()
     keyboard_builder.button(
         text=f"ТОП {TOP_ITEMS_AMOUNT} предметов по стоимости",
@@ -194,13 +200,13 @@ def get_pagination(
     limit=None,
     order=None,
 ) -> InlineKeyboardMarkup:
+    """Получение клавиатуры для пагинации"""
     keyboard_builder = InlineKeyboardBuilder()
     if page == 0:
         keyboard_builder.button(text=f"{page+1}/{pages_amount}", callback_data="null")
         keyboard_builder.button(
             text="Next",
             callback_data=callbackfactory(
-                # action=action,
                 steam_name=steam_name,
                 steam_id=steam_id,
                 page=page + 1,
@@ -222,7 +228,6 @@ def get_pagination(
         keyboard_builder.button(
             text="Previous",
             callback_data=callbackfactory(
-                # action=action,
                 steam_name=steam_name,
                 steam_id=steam_id,
                 page=page - 1,
@@ -280,6 +285,7 @@ def get_pagination(
 
 
 def get_items_back_menu(steam_id, steam_name) -> InlineKeyboardMarkup:
+    """Получение клавиатуры для возврата"""
     keyboard_builder = InlineKeyboardBuilder()
     keyboard_builder.button(
         text="Назад",
@@ -294,6 +300,7 @@ def get_items_back_menu(steam_id, steam_name) -> InlineKeyboardMarkup:
 
 
 def get_tracking_games_menu(tracking_games_list: list) -> InlineKeyboardMarkup:
+    """Получение клавиатуры для отслеживаемых игр"""
     keyboard_builder = InlineKeyboardBuilder()
     for name, game_id, first_game_cost, game_cost in tracking_games_list:
         keyboard_builder.button(
@@ -312,6 +319,7 @@ def get_tracking_games_menu(tracking_games_list: list) -> InlineKeyboardMarkup:
 
 
 def get_confirm_tracking_game_menu(game_id) -> InlineKeyboardMarkup:
+    """Получение клавиатуры для подтверждения отслеживания игры"""
     keyboard_builder = InlineKeyboardBuilder()
     keyboard_builder.button(
         text="Да",
@@ -328,6 +336,7 @@ def get_confirm_tracking_game_menu(game_id) -> InlineKeyboardMarkup:
 
 
 def get_control_menu_tracking_game(game_id: int) -> InlineKeyboardMarkup:
+    """Получение клавиатуры для управления отслеживаемой игрой"""
     keyboard_builder = InlineKeyboardBuilder()
     keyboard_builder.button(
         text="Удалить",
@@ -341,6 +350,7 @@ def get_control_menu_tracking_game(game_id: int) -> InlineKeyboardMarkup:
 
 
 def get_confirm_tracking_item_menu(item_id) -> InlineKeyboardMarkup:
+    """Получение клавиатуры для подтверждения отслеживания предмета"""
     keyboard_builder = InlineKeyboardBuilder()
     keyboard_builder.button(
         text="Да",
@@ -357,6 +367,7 @@ def get_confirm_tracking_item_menu(item_id) -> InlineKeyboardMarkup:
 
 
 def get_control_menu_tracking_items(item_id: int) -> InlineKeyboardMarkup:
+    """Получение клавиатуры для управления отслеживаемым предметом"""
     keyboard_builder = InlineKeyboardBuilder()
     keyboard_builder.button(
         text="Удалить",
@@ -370,6 +381,7 @@ def get_control_menu_tracking_items(item_id: int) -> InlineKeyboardMarkup:
 
 
 def get_tracking_items_menu(tracking_items_list: list) -> InlineKeyboardMarkup:
+    """Получение клавиатуры для отслеживаемых предметов"""
     keyboard_builder = InlineKeyboardBuilder()
     for name, item_id, first_item_cost, item_cost in tracking_items_list:
         keyboard_builder.button(
